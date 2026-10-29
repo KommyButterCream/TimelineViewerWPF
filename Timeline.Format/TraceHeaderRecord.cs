@@ -10,7 +10,7 @@ namespace Timeline.Format
     {
         public string Format { get; init; } = TimelineFormat.FormatName;
         public int Version { get; init; } = TimelineFormat.CurrentVersion;
-        public string TimeUnitP { get; init; } = TimelineFormat.TimeUnit;
+        public string TimeUnit { get; init; } = TimelineFormat.TimeUnit;
         public required DateTimeOffset OriginUtc { get; init; }
     }
 }
