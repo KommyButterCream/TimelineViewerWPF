@@ -1,0 +1,24 @@
+# .NET / WPF build outputs
+[Bb]in/
+[Oo]bj/
+[Aa]rtifacts/
+[Pp]ublish/
+
+# Visual Studio per-user settings and caches
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Temporary files and crash dumps
+*.tmp
+*.bak
+*.dmp
+
+# Local trace output (keep JSONL samples elsewhere under version control)
+/logs/
+
+# Test results
+[Tt]est[Rr]esults/
+*.trx
