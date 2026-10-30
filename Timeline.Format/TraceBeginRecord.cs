@@ -12,7 +12,7 @@ namespace Timeline.Format
         public required string Id { get; init; }
         public required string TrackId { get; init; }
         public required string Name { get; init; }
-        public long TimeUs { get; init; }
+        public required long TimeUs { get; init; }
         public string? ParentId { get; init; }
         public IReadOnlyDictionary<string, JsonElement>? Args { get; init; }
     }
