@@ -1,0 +1,147 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using Timeline.Format;
+
+namespace Timeline.IO
+{
+    public sealed class JsonlTraceWriter : ITraceWriter
+    {
+        private readonly StreamWriter _writer;
+
+        private bool _headerWritten;
+        private bool _sessionEnded;
+        private bool _faulted;
+        private bool _disposed;
+
+        public JsonlTraceWriter(string filePath)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
+
+            var stream = new FileStream(
+                filePath,
+                new FileStreamOptions
+                {
+                    Mode = FileMode.CreateNew,
+                    Access = FileAccess.Write,
+                    Share = FileShare.Read,
+                    Options = FileOptions.Asynchronous
+                });
+
+
+            try
+            {
+                _writer = new StreamWriter(
+                    stream,
+                    new UTF8Encoding(
+                        encoderShouldEmitUTF8Identifier: false,
+                        throwOnInvalidBytes: true))
+                {
+                    NewLine = "\n"
+                };
+            }
+            catch
+            {
+                stream.Dispose();
+                throw;
+            }
+        }
+
+        public async Task WriteAsync(TraceRecord record, CancellationToken cancellationToken = default)
+        {
+            ThrowIfDisposed();
+
+            if (_faulted)
+            {
+                throw new InvalidOperationException("이전 쓰기가 실패하여 Writer를 계속 사용할 수 없습니다.");
+            }
+
+            if (_sessionEnded)
+            {
+                throw new InvalidOperationException("세션 종료 이후에는 레코드를 기록할 수 없습니다");
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+
+            TraceRecordValidator.Validate(record);
+
+            bool isHeader = record is TraceHeaderRecord;
+
+            if (!_headerWritten && !isHeader)
+            {
+                throw new InvalidOperationException("첫 번째 레코드는 헤더여야 합니다.");
+            }
+
+            if (_headerWritten && isHeader)
+            {
+                throw new InvalidOperationException("헤더는 한 번만 기록할 수 있습니다.");
+            }
+
+            string json = TraceJsonSerializer.Serialize(record);
+
+            try
+            {
+                await _writer.WriteLineAsync(json.AsMemory(), cancellationToken);
+            }
+            catch
+            {
+                _faulted = true;
+                throw;
+            }
+
+            if (isHeader)
+            {
+                _headerWritten = true;
+            }
+
+            if (record is TraceSessionEndRecord)
+            {
+                _sessionEnded = true;
+            }
+        }
+
+        public async Task FlushAsync(CancellationToken cancellationToken = default)
+        {
+            ThrowIfDisposed();
+
+            if (_faulted)
+            {
+                throw new InvalidOperationException("이전 I/O 작업이 실패하여 Writer를 계속 사용할 수 없습니다.");
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+
+            try
+            {
+                await _writer.FlushAsync(cancellationToken);
+            }
+            catch
+            {
+                _faulted = true;
+                throw;
+            }
+        }
+
+        public async ValueTask DisposeAsync()
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            _disposed = true;
+
+            await _writer.DisposeAsync();
+        }
+
+        private void ThrowIfDisposed()
+        {
+            if (_disposed)
+            {
+                throw new ObjectDisposedException(nameof(JsonlTraceWriter));
+            }
+        }
+    }
+}
