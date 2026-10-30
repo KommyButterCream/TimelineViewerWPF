@@ -1,8 +1,3 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Timeline.Format;
 
 namespace Timeline.IO
@@ -36,11 +31,12 @@ namespace Timeline.IO
                     break;
 
                 default:
-                    throw new ArgumentNullException(
-                        $"지원하지 않는 레코드 타입입니다 : {record.GetType().Name}",
+                    throw new ArgumentException(
+                        $"지원하지 않는 레코드 타입입니다: {record.GetType().Name}",
                         nameof(record));
             }
         }
+
         public static void Validate(TraceHeaderRecord record)
         {
             ArgumentNullException.ThrowIfNull(record);
@@ -55,7 +51,7 @@ namespace Timeline.IO
             if (record.Version != TimelineFormat.CurrentVersion)
             {
                 throw new ArgumentException(
-                    $"지원하지 않는 포맷 버전입니다 : {record.Version}",
+                    $"지원하지 않는 포맷 버전입니다: {record.Version}",
                     nameof(record));
             }
 

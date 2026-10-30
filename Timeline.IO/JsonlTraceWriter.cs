@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using Timeline.Format;
 
 namespace Timeline.IO
@@ -17,10 +13,15 @@ namespace Timeline.IO
         private bool _disposed;
 
         public JsonlTraceWriter(string filePath)
+            : this(OpenFile(filePath))
+        {
+        }
+
+        private static FileStream OpenFile(string filePath)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
 
-            var stream = new FileStream(
+            return new FileStream(
                 filePath,
                 new FileStreamOptions
                 {
@@ -30,6 +31,14 @@ namespace Timeline.IO
                     Options = FileOptions.Asynchronous
                 });
 
+        }
+
+        /// <summary>
+        /// 쓰기 가능한 스트림에 기록합니다. leaveOpen이 false이면 스트림을 소유하고 정리합니다.
+        /// </summary>
+        public JsonlTraceWriter(Stream stream, bool leaveOpen = false)
+        {
+            ArgumentNullException.ThrowIfNull(stream);
 
             try
             {
@@ -37,14 +46,19 @@ namespace Timeline.IO
                     stream,
                     new UTF8Encoding(
                         encoderShouldEmitUTF8Identifier: false,
-                        throwOnInvalidBytes: true))
+                        throwOnInvalidBytes: true),
+                    bufferSize: 1024,
+                    leaveOpen: leaveOpen)
                 {
                     NewLine = "\n"
                 };
             }
             catch
             {
-                stream.Dispose();
+                if (!leaveOpen)
+                {
+                    stream.Dispose();
+                }
                 throw;
             }
         }
@@ -55,12 +69,12 @@ namespace Timeline.IO
 
             if (_faulted)
             {
-                throw new InvalidOperationException("이전 쓰기가 실패하여 Writer를 계속 사용할 수 없습니다.");
+                throw new InvalidOperationException("이전 I/O 작업이 실패하여 Writer를 계속 사용할 수 없습니다.");
             }
 
             if (_sessionEnded)
             {
-                throw new InvalidOperationException("세션 종료 이후에는 레코드를 기록할 수 없습니다");
+                throw new InvalidOperationException("세션 종료 이후에는 레코드를 기록할 수 없습니다.");
             }
 
             cancellationToken.ThrowIfCancellationRequested();
