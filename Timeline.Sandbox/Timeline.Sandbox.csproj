@@ -10,6 +10,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Timeline.Format\Timeline.Format.csproj" />
     <ProjectReference Include="..\Timeline.IO\Timeline.IO.csproj" />
+    <ProjectReference Include="..\Timeline.Tracing\Timeline.Tracing.csproj" />
   </ItemGroup>
 
 </Project>

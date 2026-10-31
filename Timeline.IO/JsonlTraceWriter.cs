@@ -33,9 +33,6 @@ namespace Timeline.IO
 
         }
 
-        /// <summary>
-        /// 쓰기 가능한 스트림에 기록합니다. leaveOpen이 false이면 스트림을 소유하고 정리합니다.
-        /// </summary>
         public JsonlTraceWriter(Stream stream, bool leaveOpen = false)
         {
             ArgumentNullException.ThrowIfNull(stream);

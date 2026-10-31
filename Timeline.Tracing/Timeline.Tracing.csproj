@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Timeline.Sandbox" />
+    <ProjectReference Include="..\Timeline.Format\Timeline.Format.csproj" />
+    <ProjectReference Include="..\Timeline.IO\Timeline.IO.csproj" />
+  </ItemGroup>
+
+</Project>
