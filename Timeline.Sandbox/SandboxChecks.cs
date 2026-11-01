@@ -36,7 +36,14 @@ internal static class SandboxChecks
         new(22, "tracing-auto-flush", "tracing", "유휴 자동 Flush·타이머 해제", TracerAutoFlushChecks.RunAsync),
         new(23, "tracing-scope", "tracing", "Scope 자동 종료·중첩·반복 Dispose", TraceScopeChecks.RunAsync),
         new(24, "tracing-args", "tracing", "Args 복사·JSON 수명·Scope 전달", TraceArgsChecks.RunAsync),
-        new(25, "tracing-failures", "tracing", "큐 포화·저장 실패·핸들 검사", TracerFailureChecks.RunAsync)
+        new(25, "tracing-failures", "tracing", "큐 포화·저장 실패·핸들 검사", TracerFailureChecks.RunAsync),
+        new(26, "analysis-basic", "analysis", "정상 구간·입력 순서·반복 Build", _ => RunSync(AnalysisChecks.VerifyBasic)),
+        new(27, "analysis-records", "analysis", "중복·미완료·잘못된 종료", _ => RunSync(AnalysisChecks.VerifyRecordProblems)),
+        new(28, "analysis-parents", "analysis", "부모 참조·순환·깊은 계층", _ => RunSync(AnalysisChecks.VerifyParents)),
+        new(29, "analysis-tracks", "analysis", "빈 Track·임시 Track·공유 구간", _ => RunSync(AnalysisChecks.VerifyTracks)),
+        new(30, "analysis-snapshot", "analysis", "Args 수명·결과 목록 보호", _ => RunSync(AnalysisChecks.VerifySnapshots)),
+        new(31, "analysis-contract", "analysis", "잘못된 입력 계약", _ => RunSync(AnalysisChecks.VerifyInputContract)),
+        new(32, "analysis-file", "analysis", "JSONL Reader와 분석 연결", AnalysisChecks.VerifyFileAsync)
     ];
 
     public static async Task<int> RunAsync(string[] args)
@@ -107,7 +114,7 @@ internal static class SandboxChecks
     private static void PrintHelp()
     {
         Console.WriteLine("Timeline Sandbox — 선택한 테스트만 실행합니다.");
-        Console.WriteLine("묶음: io | tracing | all / 개별: 이름 또는 번호 / 목록: --list");
+        Console.WriteLine("묶음: io | tracing | analysis | all / 개별: 이름 또는 번호 / 목록: --list");
         Console.WriteLine("여러 개 선택: read tracing-flush 또는 14,20");
         foreach (Scenario scenario in Scenarios)
             Console.WriteLine($"{scenario.Number,2}  {scenario.Name,-20} {scenario.Description}");

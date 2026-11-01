@@ -15,6 +15,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Timeline.Sandbox", "Timelin
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Timeline.Tracing", "Timeline.Tracing\Timeline.Tracing.csproj", "{6632F02B-39B4-419E-B0CF-1C4198D2826C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Timeline.Analysis", "Timeline.Analysis\Timeline.Analysis.csproj", "{4A7AD769-F7C0-46B5-B5F9-E8121A570F7F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -41,6 +43,10 @@ Global
 		{6632F02B-39B4-419E-B0CF-1C4198D2826C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6632F02B-39B4-419E-B0CF-1C4198D2826C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6632F02B-39B4-419E-B0CF-1C4198D2826C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4A7AD769-F7C0-46B5-B5F9-E8121A570F7F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4A7AD769-F7C0-46B5-B5F9-E8121A570F7F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4A7AD769-F7C0-46B5-B5F9-E8121A570F7F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4A7AD769-F7C0-46B5-B5F9-E8121A570F7F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

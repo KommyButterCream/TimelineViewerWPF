@@ -17,13 +17,14 @@ Timeline.Sandbox/
 ├─ TracerAutoFlushChecks.cs    TEST 22: 추가 이벤트 없는 자동 Flush 및 타이머 해제
 ├─ TraceScopeChecks.cs         TEST 23: Scope의 정상·예외·중첩·반복·동시 종료
 ├─ TraceArgsChecks.cs          TEST 24: Args 복사, 원본 변경·해제와 Scope 전달
-└─ TracerFailureChecks.cs      TEST 25: 큐 포화 누락 집계, 저장 실패·대기자·핸들 검사
+├─ TracerFailureChecks.cs      TEST 25: 큐 포화 누락 집계, 저장 실패·대기자·핸들 검사
+└─ AnalysisChecks.cs           TEST 26~32: 구간·중복·부모·Track·복사·입력 계약·파일 연결
 
 [ 실행 방법 ]
 - 인수 없이 실행하면 목록과 입력 메뉴를 표시합니다. Enter만 입력하면 테스트 없이 종료합니다.
 - 이름 또는 번호로 실행합니다. 예: tracing-flush 또는 20
 - 여러 개는 공백·쉼표·세미콜론으로 구분합니다. 예: read tracing-flush 또는 14,20
-- io: IO 관련 전체 / tracing: Tracing 관련 전체 / all: 전체 시나리오
+- io: IO 관련 전체 / tracing: Tracing 관련 전체 / analysis: 분석 관련 전체 / all: 전체 시나리오
 - --list 또는 --help: 실행 없이 목록 표시
 - 중복 선택은 한 번만 실행하며, 실행 순서는 등록된 번호 순서입니다.
 - 선택한 이름이 하나라도 잘못되면 테스트를 실행하지 않고 오류를 표시합니다.
@@ -34,6 +35,8 @@ dotnet run --project Timeline.Sandbox -- tracing-auto-flush
 dotnet run --project Timeline.Sandbox -- tracing-scope
 dotnet run --project Timeline.Sandbox -- tracing-args
 dotnet run --project Timeline.Sandbox -- tracing-failures
+dotnet run --project Timeline.Sandbox -- analysis
+dotnet run --project Timeline.Sandbox -- analysis-parents
 dotnet run --project Timeline.Sandbox -- read
 dotnet run --project Timeline.Sandbox -- 14,20
 dotnet run --project Timeline.Sandbox -- tracing

@@ -11,6 +11,7 @@
     <ProjectReference Include="..\Timeline.Format\Timeline.Format.csproj" />
     <ProjectReference Include="..\Timeline.IO\Timeline.IO.csproj" />
     <ProjectReference Include="..\Timeline.Tracing\Timeline.Tracing.csproj" />
+    <ProjectReference Include="..\Timeline.Analysis\Timeline.Analysis.csproj" />
   </ItemGroup>
 
 </Project>
