@@ -22,3 +22,6 @@
 # Test results
 [Tt]est[Rr]esults/
 *.trx
+
+# Local design and learning documents
+/docs/

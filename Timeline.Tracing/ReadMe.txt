@@ -36,7 +36,7 @@ DisposeAsync → 접수 중단 → 큐 입력 닫기 → 소비자 완료 대기
 - Timeline.Format의 레코드를 생성하고 Timeline.IO의 Writer로 저장합니다.
 - JSON 필드 매핑, 직렬화 및 파일 입출력은 Timeline.IO에서 담당합니다.
 - Begin/End 연결, 중복 End 및 Parent 관계 분석은 이후 TraceAssembler에서 담당합니다.
-- 타임라인 배치와 표시 기능은 TimelineViewer에서 담당합니다.
+- 타임라인 배치와 표시 기능은 Timeline.Viewer에서 담당합니다.
 - ITracer는 기록 기능만 제공합니다. 생성·Flush·종료는 소유자가 TimelineTracer를 통해 관리합니다.
 - SessionId는 다른 Tracer의 핸들 사용을 검사하기 위한 내부 값이며 JSONL에는 기록하지 않습니다.
 

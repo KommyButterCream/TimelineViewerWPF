@@ -1,6 +1,8 @@
 using System.Windows;
+using Timeline.Viewer.Services;
+using Timeline.Viewer.ViewModels;
 
-namespace TimelineViewer
+namespace Timeline.Viewer
 {
     /// <summary>
     /// Interaction logic for MainWindow.xaml
@@ -10,6 +12,10 @@ namespace TimelineViewer
         public MainWindow()
         {
             InitializeComponent();
+
+            var themeService = new ThemeService();
+
+            DataContext = new MainWindowViewModel(themeService);
         }
     }
 }

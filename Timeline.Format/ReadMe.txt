@@ -1,4 +1,4 @@
-﻿
+
 작성자 : RYLYNN
 날짜 : 2026.10.29 17:12
 
@@ -24,11 +24,11 @@ Timeline.Format/
 
 [ 역할 구분 ]
 - 로그의 공통 데이터 모델과 포맷 상수를 정의합니다. UI 없이 참조할 수 있는 클래스 라이브러리입니다.
-- Timeline.IO, Timeline.Tracing, TimelineViewer를 참조하지 않습니다.
+- Timeline.IO, Timeline.Tracing, Timeline.Viewer를 참조하지 않습니다.
 - JSON 필드명 매핑, 직렬화·역직렬화, 파일 읽기·쓰기 및 레코드 검증은 Timeline.IO에서 담당합니다.
 - originUtc와 originMono 생성, 상대 시간 측정, 이벤트 ID 발급 및 백그라운드 큐는 Timeline.Tracing에서 담당합니다.
 - Begin/End 연결, 중복 이벤트, Track·Parent 참조 및 순환 검사는 TraceAssembler에서 담당합니다.
-- 화면 배치, 시간대 변환 및 진단 표시는 TimelineViewer에서 담당합니다.
+- 화면 배치, 시간대 변환 및 진단 표시는 Timeline.Viewer에서 담당합니다.
 
 [ 데이터 의미 ]
 - OriginUtc는 상대 시간 0에 대응하는 UTC 기준 시각입니다. 파일에 쓰는 순간의 시각이 아닙니다.

@@ -1,6 +1,6 @@
 using System.Windows;
 
-namespace TimelineViewer
+namespace Timeline.Viewer
 {
     /// <summary>
     /// Interaction logic for App.xaml
