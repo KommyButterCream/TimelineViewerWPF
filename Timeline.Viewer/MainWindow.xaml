@@ -4,6 +4,8 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Timeline.Viewer"
+        xmlns:controls="clr-namespace:Timeline.Viewer.Controls"
+        xmlns:converters="clr-namespace:Timeline.Viewer.Converters"
         mc:Ignorable="d"
         Title="Timeline.Viewer"
         Width="1280"
@@ -11,6 +13,10 @@
         MinWidth="900"
         MinHeight="560"
         WindowStartupLocation="CenterScreen">
+
+    <Window.Resources>
+        <converters:TrackBrushConverter x:Key="TrackBrushConverter" />
+    </Window.Resources>
 
     <Grid Background="{DynamicResource CanvasBrush}">
         <Grid.RowDefinitions>
@@ -37,6 +43,11 @@
                         Margin="8,0,0,0"
                         Padding="12,6" />
 
+                <Button Content="샘플 Span 추가"
+                        Command="{Binding AddSampleSpanCommand}"
+                        Margin="8,0,0,0"
+                        Padding="12,6"/>
+
             </StackPanel>
         </Border>
 
@@ -49,23 +60,58 @@
 
             <Border Grid.Column="0"
                     Padding="16">
-                <ListBox ItemsSource="{Binding Tracks}"
-                         SelectedItem="{Binding SelectedTrack, Mode=TwoWay}"
-                         DisplayMemberPath="Name"
-                         Background="{DynamicResource CanvasBrush}"
-                         Foreground="{DynamicResource PrimaryTextBrush}"
-                         BorderThickness="0"
-                         ScrollViewer.VerticalScrollBarVisibility="Auto"
-                         ScrollViewer.HorizontalScrollBarVisibility="Auto">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
 
-                    <ListBox.ItemContainerStyle>
-                        <Style TargetType="{x:Type ListBoxItem}">
-                            <Setter Property="Padding"
-                                    Value="12,8" />
-                        </Style>
-                    </ListBox.ItemContainerStyle>
+                    <ListBox Grid.Row="0"
+                             ItemsSource="{Binding Tracks}"
+                             SelectedItem="{Binding SelectedTrack, Mode=TwoWay}"
+                             DisplayMemberPath="Name"
+                             Background="{DynamicResource CanvasBrush}"
+                             Foreground="{DynamicResource PrimaryTextBrush}"
+                             BorderThickness="0">
 
-                </ListBox>
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="{x:Type ListBoxItem}">
+                                <Setter Property="Padding"
+                                        Value="12,8" />
+                            </Style>
+                        </ListBox.ItemContainerStyle>
+                    </ListBox>
+
+                    <Border Grid.Row="1"
+                            BorderBrush="{DynamicResource DividerBrush}"
+                            BorderThickness="0,1,0,0"
+                            Margin="0,16,0,0">
+                        <controls:TimelineSurface
+                            Tracks="{Binding Tracks}"
+                            AxisBrush="{DynamicResource SecondaryTextBrush}"
+                            GridLineBrush="{DynamicResource DividerBrush}"/>
+                    </Border>
+                    <WrapPanel Grid.Row="2" Margin="0,5,0,0">
+                        <ItemsControl ItemsSource="{Binding Tracks}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,12,0">
+                                        <Rectangle Width="8" Height="8" Margin="0,0,5,0"
+                                                   Fill="{Binding Id, Converter={StaticResource TrackBrushConverter}}" />
+                                        <TextBlock Text="{Binding Name}" FontSize="11"
+                                                   Foreground="{DynamicResource SecondaryTextBrush}" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <TextBlock Text="│ 0 ms   ▧ 종료 누락 (표시 범위까지)" FontSize="11"
+                                   Foreground="{DynamicResource SecondaryTextBrush}" />
+                    </WrapPanel>
+                </Grid>
             </Border>
 
             <Border Grid.Column="1"
@@ -73,6 +119,7 @@
                     BorderBrush="{DynamicResource DividerBrush}"
                     BorderThickness="1,0,0,0"
                     Padding="16">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                 <StackPanel>
                     <TextBlock Text="INSPECTOR"
                              Foreground="{DynamicResource SecondaryTextBrush}" />
@@ -96,7 +143,31 @@
                                               TargetNullValue='—',
                                               FallbackValue='—'}"
                                Foreground="{DynamicResource PrimaryTextBrush}" />
+
+                    <TextBlock Text="작업 목록"
+                             Foreground="{DynamicResource SecondaryTextBrush}"
+                             Margin="0,24,0,8"/>
+
+                    <ItemsControl ItemsSource="{Binding SelectedTrack.Spans}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border BorderBrush="{DynamicResource DividerBrush}"
+                                        BorderThickness="0,0,0,1"
+                                        Padding="0,10">
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding Name}"
+                                                   Foreground="{DynamicResource PrimaryTextBrush}"
+                                                   TextWrapping="Wrap"/>
+                                        <TextBlock Text="{Binding DurationText}"
+                                                   Foreground="{DynamicResource SecondaryTextBrush}"
+                                                   Margin="0,4,0,0"/>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
                 </StackPanel>
+                </ScrollViewer>
             </Border>
         </Grid>
 

@@ -3,12 +3,13 @@ using System.Collections.ObjectModel;
 using Timeline.Viewer.Commands;
 using Timeline.Viewer.Models;
 using Timeline.Viewer.Services;
+using Timeline.Viewer.Samples;
 
 namespace Timeline.Viewer.ViewModels
 {
     public class MainWindowViewModel : ObservableObject
     {
-        private const string DefaultStatusText = "Ready · 세션 없음 · 진단 0건";
+        private const string DefaultStatusText = "Ready · 샘플 세션";
 
         private readonly IThemeService _themeService;
         private string _statusText = DefaultStatusText;
@@ -26,18 +27,23 @@ namespace Timeline.Viewer.ViewModels
 
             ToggleThemeCommand = new RelayCommand(ToggleTheme);
 
+            AddSampleSpanCommand = new RelayCommand(AddSampleSpan);
+
             _themeService.ApplyTheme(_currentTheme);
 
-            Tracks.Add(new TrackItemViewModel("main", "Main thread"));
-            Tracks.Add(new TrackItemViewModel("workers", "Worker pool"));
-            Tracks.Add(new TrackItemViewModel("file-io", "File I/O"));
+            foreach (TrackItemViewModel track in SampleTraceFactory.CreateTracks())
+            {
+                Tracks.Add(track);
+            }
 
-            SelectedTrack = Tracks[0];
+            SelectedTrack = Tracks.Count > 0 ? Tracks[0] : null;
         }
 
         public RelayCommand ResetStatusCommand { get; }
 
         public RelayCommand ToggleThemeCommand { get; }
+
+        public RelayCommand AddSampleSpanCommand { get; }
 
         public ObservableCollection<TrackItemViewModel> Tracks { get; } =
             new ObservableCollection<TrackItemViewModel>();
@@ -99,6 +105,24 @@ namespace Timeline.Viewer.ViewModels
         private bool CanResetStatus()
         {
             return StatusText != DefaultStatusText;
+        }
+
+        private void AddSampleSpan()
+        {
+            TrackItemViewModel? track = SelectedTrack;
+
+            if (track is null)
+            {
+                return;
+            }
+
+            var span = new SpanItemViewModel(
+                Guid.NewGuid().ToString("N"),
+                "added sample",
+                220_000,
+                235_000);
+
+            track.Spans.Add(span);
         }
     }
 }
