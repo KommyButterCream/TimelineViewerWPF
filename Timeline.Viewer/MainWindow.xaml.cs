@@ -17,5 +17,10 @@ namespace Timeline.Viewer
 
             DataContext = new MainWindowViewModel(themeService);
         }
+
+        private void OnFitToView(object sender, RoutedEventArgs e)
+        {
+            TimelineView.FitToView();
+        }
     }
 }

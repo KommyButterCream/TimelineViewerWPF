@@ -15,6 +15,7 @@
         WindowStartupLocation="CenterScreen">
 
     <Window.Resources>
+        <!-- Converter 객체 등록 -->
         <converters:TrackBrushConverter x:Key="TrackBrushConverter" />
     </Window.Resources>
 
@@ -48,6 +49,9 @@
                         Margin="8,0,0,0"
                         Padding="12,6"/>
 
+                <Button Content="전체 시간 맞춤" Click="OnFitToView"
+                        Margin="8,0,0,0" Padding="12,6"/>
+
             </StackPanel>
         </Border>
 
@@ -68,6 +72,7 @@
                     </Grid.RowDefinitions>
 
                     <ListBox Grid.Row="0"
+                             MaxHeight="112"
                              ItemsSource="{Binding Tracks}"
                              SelectedItem="{Binding SelectedTrack, Mode=TwoWay}"
                              DisplayMemberPath="Name"
@@ -87,30 +92,73 @@
                             BorderBrush="{DynamicResource DividerBrush}"
                             BorderThickness="0,1,0,0"
                             Margin="0,16,0,0">
-                        <controls:TimelineSurface
-                            Tracks="{Binding Tracks}"
-                            AxisBrush="{DynamicResource SecondaryTextBrush}"
-                            GridLineBrush="{DynamicResource DividerBrush}"/>
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <controls:TimelineSurface
+                                x:Name="TimelineView"
+                                Grid.Row="0"
+                                Grid.Column="0"
+                                Tracks="{Binding Tracks}"
+                                AxisBrush="{DynamicResource SecondaryTextBrush}"
+                                GridLineBrush="{DynamicResource DividerBrush}"/>
+
+                            <ScrollBar
+                                Grid.Row="0"
+                                Grid.Column="1"
+                                Orientation="Vertical"
+                                Minimum="0"
+                                Maximum="{Binding VerticalAxis.MaxOffset, ElementName=TimelineView}"
+                                ViewportSize="{Binding VerticalAxis.Viewport, ElementName=TimelineView}"
+                                LargeChange="{Binding VerticalAxis.Viewport, ElementName=TimelineView}"
+                                SmallChange="24"
+                                Value="{Binding VerticalAxis.Offset, ElementName=TimelineView, Mode=TwoWay}"/>
+
+                            <ScrollBar
+                                Grid.Row="1"
+                                Grid.Column="0"
+                                Orientation="Horizontal"
+                                Minimum="0"
+                                Maximum="{Binding HorizontalAxis.MaxOffset, ElementName=TimelineView}"
+                                ViewportSize="{Binding HorizontalAxis.Viewport, ElementName=TimelineView}"
+                                LargeChange="{Binding HorizontalAxis.Viewport, ElementName=TimelineView}"
+                                SmallChange="24"
+                                Value="{Binding HorizontalAxis.Offset, ElementName=TimelineView, Mode=TwoWay}"/>
+                        </Grid>
+
                     </Border>
-                    <WrapPanel Grid.Row="2" Margin="0,5,0,0">
-                        <ItemsControl ItemsSource="{Binding Tracks}">
-                            <ItemsControl.ItemsPanel>
-                                <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
-                            </ItemsControl.ItemsPanel>
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <StackPanel Orientation="Horizontal" Margin="0,0,12,0">
-                                        <Rectangle Width="8" Height="8" Margin="0,0,5,0"
+                    <ScrollViewer Grid.Row="2" MaxHeight="64" Margin="0,5,0,0"
+                                  VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                        <WrapPanel>
+                            <ItemsControl ItemsSource="{Binding Tracks}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,12,0">
+                                            <Rectangle Width="8" Height="8" Margin="0,0,5,0"
                                                    Fill="{Binding Id, Converter={StaticResource TrackBrushConverter}}" />
-                                        <TextBlock Text="{Binding Name}" FontSize="11"
+                                            <TextBlock Text="{Binding Name}" FontSize="11"
                                                    Foreground="{DynamicResource SecondaryTextBrush}" />
-                                    </StackPanel>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                        <TextBlock Text="│ 0 ms   ▧ 종료 누락 (표시 범위까지)" FontSize="11"
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <TextBlock Text="│ 0 ms   ▧ 종료 누락 (표시 범위까지)" FontSize="11"
                                    Foreground="{DynamicResource SecondaryTextBrush}" />
-                    </WrapPanel>
+                        </WrapPanel>
+                    </ScrollViewer>
                 </Grid>
             </Border>
 
@@ -120,53 +168,53 @@
                     BorderThickness="1,0,0,0"
                     Padding="16">
                 <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                <StackPanel>
-                    <TextBlock Text="INSPECTOR"
+                    <StackPanel>
+                        <TextBlock Text="INSPECTOR"
                              Foreground="{DynamicResource SecondaryTextBrush}" />
 
-                    <TextBlock Text="선택한 Track"
+                        <TextBlock Text="선택한 Track"
                              Foreground="{DynamicResource SecondaryTextBrush}"
                              Margin="0,24,0,6" />
 
-                    <TextBlock Text="{Binding SelectedTrack.Name,
+                        <TextBlock Text="{Binding SelectedTrack.Name,
                                               TargetNullValue='선택 없음',
                                               FallbackValue='선택 없음'}"
                                Foreground="{DynamicResource PrimaryTextBrush}"
                                FontSize="18"
                                TextWrapping="Wrap" />
 
-                    <TextBlock Text="Track ID"
+                        <TextBlock Text="Track ID"
                                Foreground="{DynamicResource SecondaryTextBrush}"
                                Margin="0,20,0,6" />
 
-                    <TextBlock Text="{Binding SelectedTrack.Id,
+                        <TextBlock Text="{Binding SelectedTrack.Id,
                                               TargetNullValue='—',
                                               FallbackValue='—'}"
                                Foreground="{DynamicResource PrimaryTextBrush}" />
 
-                    <TextBlock Text="작업 목록"
+                        <TextBlock Text="작업 목록"
                              Foreground="{DynamicResource SecondaryTextBrush}"
                              Margin="0,24,0,8"/>
 
-                    <ItemsControl ItemsSource="{Binding SelectedTrack.Spans}">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <Border BorderBrush="{DynamicResource DividerBrush}"
+                        <ItemsControl ItemsSource="{Binding SelectedTrack.Spans}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border BorderBrush="{DynamicResource DividerBrush}"
                                         BorderThickness="0,0,0,1"
                                         Padding="0,10">
-                                    <StackPanel>
-                                        <TextBlock Text="{Binding Name}"
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding Name}"
                                                    Foreground="{DynamicResource PrimaryTextBrush}"
                                                    TextWrapping="Wrap"/>
-                                        <TextBlock Text="{Binding DurationText}"
+                                            <TextBlock Text="{Binding DurationText}"
                                                    Foreground="{DynamicResource SecondaryTextBrush}"
                                                    Margin="0,4,0,0"/>
-                                    </StackPanel>
-                                </Border>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </StackPanel>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
                 </ScrollViewer>
             </Border>
         </Grid>
