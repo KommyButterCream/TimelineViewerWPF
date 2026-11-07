@@ -8,6 +8,7 @@ using Timeline.Viewer.Rendering;
 using Timeline.Viewer.ViewModels;
 using System.ComponentModel;
 using System.Windows.Input;
+using System.Linq;
 
 namespace Timeline.Viewer.Controls
 {
@@ -22,6 +23,7 @@ namespace Timeline.Viewer.Controls
         private const double TrackVerticalPadding = 18;
         private const double LaneGap = 8;
         private const double SpanHeight = 28;
+        private const double CollapsedTrackHeight = 32;
         private const double ChartLeft = HorizontalPadding + TrackLabelWidth;
 
         private Point? _panStartPoint;
@@ -38,16 +40,28 @@ namespace Timeline.Viewer.Controls
         private double _panStartVerticalOffset;
 
         private readonly HashSet<INotifyCollectionChanged> _observedSpanCollections = new();
+        private readonly HashSet<TrackItemViewModel> _observedTracks = new();
         private readonly TimelineLayoutService _layoutService = new();
 
-        private readonly ScrollAxis _HorizontalAxis = new();
+        private readonly List<(Rect Bounds, SpanItemViewModel Span)> _spanHitAreas = new();
+
+        private readonly ScrollAxis _horizontalAxis = new();
         private readonly ScrollAxis _verticalAxis = new();
+
+        private SpanItemViewModel? _pendingRevealSpan;
 
         public static readonly DependencyProperty TracksProperty = DependencyProperty.Register(
             nameof(Tracks),
             typeof(IEnumerable<TrackItemViewModel>),
             typeof(TimelineSurface),
             new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender, OnTracksChanged));
+
+        public static readonly DependencyProperty SelectedSpanProperty = DependencyProperty.Register(
+            nameof(SelectedSpan),
+            typeof(SpanItemViewModel),
+            typeof(TimelineSurface),
+            new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault |
+                FrameworkPropertyMetadataOptions.AffectsRender));
 
         public static readonly DependencyProperty AxisBrushProperty = DependencyProperty.Register(
             nameof(AxisBrush),
@@ -64,17 +78,43 @@ namespace Timeline.Viewer.Controls
         public TimelineSurface()
         {
             ClipToBounds = true;
-            _HorizontalAxis.PropertyChanged += OnVerticalAxisPropertyChanged;
-            _verticalAxis.PropertyChanged += OnVerticalAxisPropertyChanged;
+            Focusable = true;
+            KeyboardNavigation.SetIsTabStop(this, true);
+            _horizontalAxis.PropertyChanged += OnAxisPropertyChanged;
+            _verticalAxis.PropertyChanged += OnAxisPropertyChanged;
         }
 
-        public ScrollAxis HorizontalAxis => _HorizontalAxis;
+        public void RevealSpan(SpanItemViewModel span)
+        {
+            ArgumentNullException.ThrowIfNull(span);
+            if (Tracks is not null)
+            {
+                foreach (TrackItemViewModel track in Tracks)
+                {
+                    if (track.Spans.Contains(span))
+                    {
+                        track.IsExpanded = true;
+                        break;
+                    }
+                }
+            }
+            _pendingRevealSpan = span;
+            InvalidateVisual();
+        }
+
+        public ScrollAxis HorizontalAxis => _horizontalAxis;
         public ScrollAxis VerticalAxis => _verticalAxis;
 
         public IEnumerable<TrackItemViewModel>? Tracks
         {
             get => (IEnumerable<TrackItemViewModel>?)GetValue(TracksProperty);
             set => SetValue(TracksProperty, value);
+        }
+
+        public SpanItemViewModel? SelectedSpan
+        {
+            get => (SpanItemViewModel?)GetValue(SelectedSpanProperty);
+            set => SetValue(SelectedSpanProperty, value);
         }
 
         public Brush? AxisBrush
@@ -93,6 +133,18 @@ namespace Timeline.Viewer.Controls
         {
             base.OnRenderSizeChanged(sizeInfo);
 
+            InvalidateVisual();
+        }
+
+        protected override void OnGotKeyboardFocus(KeyboardFocusChangedEventArgs e)
+        {
+            base.OnGotKeyboardFocus(e);
+            InvalidateVisual();
+        }
+
+        protected override void OnLostKeyboardFocus(KeyboardFocusChangedEventArgs e)
+        {
+            base.OnLostKeyboardFocus(e);
             InvalidateVisual();
         }
 
@@ -152,44 +204,97 @@ namespace Timeline.Viewer.Controls
             }
         }
 
-        private void ZoomAtPointer(double pointerX, int wheelDelta)
+        protected override void OnKeyDown(KeyEventArgs e)
         {
-            double width = HorizontalAxis.Viewport;
-            double chartX = pointerX - ChartLeft;
-            if (width <= 0 || chartX < 0 || chartX > width)
+            base.OnKeyDown(e);
+
+            if (e.Handled
+                || Keyboard.Modifiers != ModifierKeys.None
+                || _panStartPoint is not null)
             {
                 return;
             }
 
-            long maxDurationUs = Math.Max(InitialDurationUs, _latestTimeUs);
-            double requestedUs = _visibleDurationUs / Math.Pow(ZoomFactor, wheelDelta / 120.0);
-            long durationUs = requestedUs >= maxDurationUs
-                ? maxDurationUs
-                : Math.Max(MinDurationUs, (long)Math.Round(requestedUs));
-            if (durationUs == _visibleDurationUs)
+            if (e.Key == Key.Escape)
+            {
+                SetCurrentValue(SelectedSpanProperty, null);
+                e.Handled = true;
+                return;
+            }
+
+            if (e.Key != Key.Left
+                && e.Key != Key.Right
+                && e.Key != Key.Home
+                && e.Key != Key.End)
             {
                 return;
             }
 
-            double pointerRatio = chartX / width;
-            double anchorUs = (HorizontalAxis.Offset / width + pointerRatio) * _visibleDurationUs;
-            _visibleDurationUs = durationUs;
-            UpdateHorizontalRange(width);
-            HorizontalAxis.ScrollTo((anchorUs / durationUs - pointerRatio) * width);
-            InvalidateVisual();
-        }
+            List<SpanItemViewModel> spans = GetKeyboardSpans();
 
-        private void UpdateHorizontalRange(double width)
-        {
-            var scaleMapper = new TimelineCoordinateMapper(0, _visibleDurationUs, width);
-            HorizontalAxis.UpdateSize(scaleMapper.DurationToWidth(_latestTimeUs), width);
-        }
+            if (spans.Count == 0)
+            {
+                return;
+            }
 
+            int index = SelectedSpan is null
+                ? -1
+                : spans.IndexOf(SelectedSpan);
+
+            switch (e.Key)
+            {
+                case Key.Home:
+                    index = 0;
+                    break;
+
+                case Key.End:
+                    index = spans.Count - 1;
+                    break;
+
+                case Key.Left:
+                    index = index < 0
+                        ? spans.Count - 1
+                        : Math.Max(0, index - 1);
+                    break;
+
+                case Key.Right:
+                    index = index < 0
+                        ? 0
+                        : Math.Min(spans.Count - 1, index + 1);
+                    break;
+            }
+
+            SpanItemViewModel span = spans[index];
+
+            SetCurrentValue(SelectedSpanProperty, span);
+            RevealSpan(span);
+
+            e.Handled = true;
+        }
         protected override void OnMouseDown(MouseButtonEventArgs e)
         {
             base.OnMouseDown(e);
 
-            if (e.Handled || e.ChangedButton != MouseButton.Middle)
+            if (e.Handled)
+            {
+                return;
+            }
+
+            if (e.ChangedButton == MouseButton.Left)
+            {
+                if (_panStartPoint is null)
+                {
+                    Focus();
+
+                    SpanItemViewModel? span = FindSpanAt(e.GetPosition(this));
+                    SetCurrentValue(SelectedSpanProperty, span);
+                }
+
+                e.Handled = true;
+                return;
+            }
+
+            if (e.ChangedButton != MouseButton.Middle)
             {
                 return;
             }
@@ -236,6 +341,8 @@ namespace Timeline.Viewer.Controls
         {
             base.OnRender(drawingContext);
 
+            _spanHitAreas.Clear();
+
             double viewportWidth = ActualWidth - ChartLeft - HorizontalPadding;
 
             if (!double.IsFinite(viewportWidth)
@@ -251,6 +358,9 @@ namespace Timeline.Viewer.Controls
             double extentHeight = 0;
             long latestTimeUs = 0;
 
+            SpanItemViewModel? revealSpan = _pendingRevealSpan;
+            double? revealTop = null;
+
             var rows = new List<(TrackItemViewModel Track, TrackLayout Layout, double Height)>();
 
             if (Tracks is not null)
@@ -259,21 +369,28 @@ namespace Timeline.Viewer.Controls
                 foreach (TrackItemViewModel track in Tracks)
                 {
                     TrackLayout layout = _layoutService.BuildTrackLayout(track.Spans);
-                    double trackHeight = GetTrackHeight(layout);
+                    double trackHeight = track.IsExpanded
+                        ? GetTrackHeight(layout)
+                        : CollapsedTrackHeight;
 
                     rows.Add((track, layout, trackHeight));
-
-                    // 전체 Track 높이 더하여 전체 track 영역 높이 계싼
-                    extentHeight += trackHeight;
 
                     // 가로축은 가장 늦은 시간 찾기
                     foreach (SpanPlacement placement in layout.Placements)
                     {
-                        var span = placement.Span;
+                        SpanItemViewModel span = placement.Span;
                         long lastKnownTimeUs = span.EndTimeUs ?? span.StartTimeUs;
 
                         latestTimeUs = Math.Max(latestTimeUs, lastKnownTimeUs);
+
+                        if (ReferenceEquals(span, revealSpan))
+                        {
+                            revealTop = extentHeight + TrackVerticalPadding + placement.LaneIndex * (SpanHeight + LaneGap);
+                        }
                     }
+
+                    // 전체 Track 높이 더하여 전체 track 영역 높이 계산
+                    extentHeight += trackHeight;
                 }
             }
 
@@ -297,6 +414,18 @@ namespace Timeline.Viewer.Controls
                 HorizontalAxis.ScrollTo(oldOffset / oldWidth * viewportWidth);
             }
             _verticalAxis.UpdateSize(extentHeight, viewportHeight);
+
+            if (revealSpan is not null && revealTop is double spanTop)
+            {
+                var contentMapper = new TimelineCoordinateMapper(0, _visibleDurationUs, viewportWidth);
+
+                double spanStartX = contentMapper.TimeToX(revealSpan.StartTimeUs);
+
+                HorizontalAxis.ScrollTo(spanStartX - viewportWidth / 2);
+                VerticalAxis.ScrollTo(spanTop + SpanHeight / 2 - viewportHeight / 2);
+            }
+
+            _pendingRevealSpan = null;
 
             // 스크롤과 화면 거리(DIP)를 시간(us)으로 바꾼다.
             long maxStartUs = Math.Max(0L, latestTimeUs - _visibleDurationUs);
@@ -322,6 +451,52 @@ namespace Timeline.Viewer.Controls
             }
 
             drawingContext.Pop();
+
+
+            if(IsKeyboardFocused && AxisBrush is Brush focusBrsuh)
+            {
+                var focusPen = new Pen(focusBrsuh, 1)
+                {
+                    DashStyle = DashStyles.Dot
+                };
+
+                var focusBounds = new Rect(0.5, 0.5, Math.Max(0, ActualWidth - 1), Math.Max(0, ActualHeight - 1));
+
+                drawingContext.DrawRectangle(null, focusPen, focusBounds);
+            }
+        }
+
+        private void ZoomAtPointer(double pointerX, int wheelDelta)
+        {
+            double width = HorizontalAxis.Viewport;
+            double chartX = pointerX - ChartLeft;
+            if (width <= 0 || chartX < 0 || chartX > width)
+            {
+                return;
+            }
+
+            long maxDurationUs = Math.Max(InitialDurationUs, _latestTimeUs);
+            double requestedUs = _visibleDurationUs / Math.Pow(ZoomFactor, wheelDelta / 120.0);
+            long durationUs = requestedUs >= maxDurationUs
+                ? maxDurationUs
+                : Math.Max(MinDurationUs, (long)Math.Round(requestedUs));
+            if (durationUs == _visibleDurationUs)
+            {
+                return;
+            }
+
+            double pointerRatio = chartX / width;
+            double anchorUs = (HorizontalAxis.Offset / width + pointerRatio) * _visibleDurationUs;
+            _visibleDurationUs = durationUs;
+            UpdateHorizontalRange(width);
+            HorizontalAxis.ScrollTo((anchorUs / durationUs - pointerRatio) * width);
+            InvalidateVisual();
+        }
+
+        private void UpdateHorizontalRange(double width)
+        {
+            var scaleMapper = new TimelineCoordinateMapper(0, _visibleDurationUs, width);
+            HorizontalAxis.UpdateSize(scaleMapper.DurationToWidth(_latestTimeUs), width);
         }
 
         private static void OnTracksChanged(DependencyObject dependencyObject, DependencyPropertyChangedEventArgs e)
@@ -350,6 +525,13 @@ namespace Timeline.Viewer.Controls
 
         private void RefreshSpanSubscriptions()
         {
+            foreach (TrackItemViewModel track in _observedTracks)
+            {
+                PropertyChangedEventManager.RemoveHandler(
+                    track, OnTrackPropertyChanged, nameof(TrackItemViewModel.IsExpanded));
+            }
+            _observedTracks.Clear();
+
             foreach (INotifyCollectionChanged collection in _observedSpanCollections)
             {
                 CollectionChangedEventManager.RemoveHandler(collection, OnSpansCollectionChanged);
@@ -364,11 +546,21 @@ namespace Timeline.Viewer.Controls
 
             foreach (TrackItemViewModel track in Tracks)
             {
+                if (_observedTracks.Add(track))
+                {
+                    PropertyChangedEventManager.AddHandler(
+                        track, OnTrackPropertyChanged, nameof(TrackItemViewModel.IsExpanded));
+                }
                 if (_observedSpanCollections.Add(track.Spans))
                 {
                     CollectionChangedEventManager.AddHandler(track.Spans, OnSpansCollectionChanged);
                 }
             }
+        }
+
+        private void OnTrackPropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            InvalidateVisual();
         }
 
         private void OnSpansCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
@@ -425,6 +617,11 @@ namespace Timeline.Viewer.Controls
                 new Point(ActualWidth - HorizontalPadding, rowTop + trackHeight));
 
             // ViewPort 영역을 벗어나지 않도록 클리핑 영역 설정
+            if (!track.IsExpanded)
+            {
+                return;
+            }
+
             drawingContext.PushClip(new RectangleGeometry(new Rect(
                 ChartLeft, rowTop,
                 ActualWidth - ChartLeft - HorizontalPadding, trackHeight)));
@@ -465,6 +662,8 @@ namespace Timeline.Viewer.Controls
                 // 직선과 원이 겹친 도형을 그려준다.
                 // 즉발성 이벤트 같은거 그려준다고 보면 된다.
 
+                RegisterHitArea(new Rect(x - 4, top, 8, SpanHeight), span);
+
                 drawingContext.DrawLine(
                     new Pen(brush, 3),
                     new Point(x, top),
@@ -475,6 +674,8 @@ namespace Timeline.Viewer.Controls
                     null,
                     new Point(x, top + SpanHeight / 2),
                     4, 4);
+
+                DrawSelectionBorder(drawingContext, span, new Rect(x - 4, top, 8, SpanHeight));
 
                 return;
             }
@@ -490,6 +691,9 @@ namespace Timeline.Viewer.Controls
 
             // Span 을 그릴 Rectangle Geometry 설정
             var bounds = new Rect(left, top, right - left, SpanHeight);
+
+            RegisterHitArea(bounds, span);
+
             drawingContext.PushClip(new RectangleGeometry(bounds));
 
             if (span.IsMissingEnd)
@@ -542,6 +746,8 @@ namespace Timeline.Viewer.Controls
                     new Point(left + 5, top + (SpanHeight - text.Height) / 2));
             }
             drawingContext.Pop();
+
+            DrawSelectionBorder(drawingContext, span, bounds);
         }
 
         private void DrawTimeAxis(DrawingContext drawingContext, TimelineCoordinateMapper mapper, double viewportWidth)
@@ -612,12 +818,76 @@ namespace Timeline.Viewer.Controls
             }
         }
 
-        private void OnVerticalAxisPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+        private void OnAxisPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
             if (e.PropertyName == nameof(ScrollAxis.Offset))
             {
                 InvalidateVisual();
             }
+        }
+
+        private void RegisterHitArea(Rect bounds, SpanItemViewModel span)
+        {
+            var viewport = new Rect(
+                ChartLeft,
+                AxisHeight,
+                Math.Max(0, ActualWidth - ChartLeft - HorizontalPadding),
+                Math.Max(0, ActualHeight - AxisHeight));
+
+            bounds.Intersect(viewport);
+
+            if (!bounds.IsEmpty && bounds.Width > 0 && bounds.Height > 0)
+            {
+                _spanHitAreas.Add((bounds, span));
+            }
+        }
+
+        private SpanItemViewModel? FindSpanAt(Point point)
+        {
+            for (int i = _spanHitAreas.Count - 1; i >= 0; i--)
+            {
+                var hitArea = _spanHitAreas[i];
+
+                if (hitArea.Bounds.Contains(point))
+                {
+                    return hitArea.Span;
+                }
+            }
+
+            return null;
+        }
+
+        private void DrawSelectionBorder(DrawingContext drawingContext, SpanItemViewModel span, Rect bounds)
+        {
+            if (!ReferenceEquals(span, SelectedSpan) || AxisBrush is null)
+            {
+                return;
+            }
+
+            // 테두리 두께의 절반만큼 안쪽에 배치한다.
+            const double thickness = 2;
+
+            if (bounds.Width <= thickness || bounds.Height <= thickness)
+            {
+                return;
+            }
+
+            bounds.Inflate(-thickness / 2, -thickness / 2);
+
+            var pen = new Pen(AxisBrush, thickness);
+            drawingContext.DrawRoundedRectangle(null, pen, bounds, 2, 2);
+        }
+
+        private List<SpanItemViewModel> GetKeyboardSpans()
+        {
+            if (Tracks is null)
+            {
+                return new List<SpanItemViewModel>();
+            }
+
+            return Tracks.SelectMany(track => track.Spans)
+                         .OrderBy(span => span.StartTimeUs)
+                         .ToList();
         }
     }
 }

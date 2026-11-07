@@ -1,18 +1,18 @@
 <Window x:Class="Timeline.Viewer.MainWindow"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:Timeline.Viewer"
-        xmlns:controls="clr-namespace:Timeline.Viewer.Controls"
-        xmlns:converters="clr-namespace:Timeline.Viewer.Converters"
-        mc:Ignorable="d"
-        Title="Timeline.Viewer"
-        Width="1280"
-        Height="760"
-        MinWidth="900"
-        MinHeight="560"
-        WindowStartupLocation="CenterScreen">
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:local="clr-namespace:Timeline.Viewer"
+    xmlns:controls="clr-namespace:Timeline.Viewer.Controls"
+    xmlns:converters="clr-namespace:Timeline.Viewer.Converters"
+    mc:Ignorable="d"
+    Title="Timeline.Viewer"
+    Width="1280"
+    Height="760"
+    MinWidth="900"
+    MinHeight="560"
+    WindowStartupLocation="CenterScreen">
 
     <Window.Resources>
         <!-- Converter 객체 등록 -->
@@ -28,31 +28,69 @@
 
         <!-- 상단 도구 모음 -->
         <Border Grid.Row="0"
-                Background="{DynamicResource SurfaceBrush}"
-                Padding="12">
-            <StackPanel Orientation="Horizontal">
+            Background="{DynamicResource SurfaceBrush}"
+            Padding="12">
+            <WrapPanel Orientation="Horizontal">
                 <Button Content="로그 열기"
-                        Style="{StaticResource AccentButtonStyle}" />
+                    Style="{StaticResource AccentButtonStyle}" />
 
                 <TextBlock Text="Timeline.Viewer"
-                           Foreground="{DynamicResource PrimaryTextBrush}"
-                           VerticalAlignment="Center"
-                           Margin="16,0,0,0" />
+                    Foreground="{DynamicResource PrimaryTextBrush}"
+                    VerticalAlignment="Center"
+                    Margin="16,0,0,0" />
 
                 <Button Content="{Binding ThemeButtonText}"
-                        Command="{Binding ToggleThemeCommand}"
-                        Margin="8,0,0,0"
-                        Padding="12,6" />
+                    Command="{Binding ToggleThemeCommand}"
+                    Margin="8,0,0,0"
+                    Padding="12,6" />
 
                 <Button Content="샘플 Span 추가"
-                        Command="{Binding AddSampleSpanCommand}"
-                        Margin="8,0,0,0"
-                        Padding="12,6"/>
+                    Command="{Binding AddSampleSpanCommand}"
+                    Margin="8,0,0,0"
+                    Padding="12,6"/>
 
                 <Button Content="전체 시간 맞춤" Click="OnFitToView"
-                        Margin="8,0,0,0" Padding="12,6"/>
+                    Margin="8,0,0,0" Padding="12,6"/>
 
-            </StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="12,4,0,4">
+                    <TextBlock Text="검색"
+                        Foreground="{DynamicResource SecondaryTextBrush}"
+                        VerticalAlignment="Center"
+                        Margin="0,0,8,0"/>
+
+                    <TextBox Width="160"
+                        Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                        Background="{DynamicResource CanvasBrush}"
+                        Foreground="{DynamicResource PrimaryTextBrush}"
+                        BorderBrush="{DynamicResource DividerBrush}"
+                        Padding="8,4"
+                        VerticalContentAlignment="Center"
+                        ToolTip="Span 이름·ID 또는 Track 이름·ID"
+                        AutomationProperties.Name="Span 검색">
+                        <TextBox.InputBindings>
+                            <KeyBinding Key="Enter" Command="{Binding SearchCommand}"/>
+                        </TextBox.InputBindings>
+                    </TextBox>
+
+                    <Button Content="검색"
+                        Command="{Binding SearchCommand}"
+                        Margin="6,0,0,0"
+                        Padding="12,6"/>
+                    <Button Content="이전"
+                        Command="{Binding PreviousSearchResultCommand}"
+                        Margin="6,0,0,0"
+                        Padding="10,6"/>
+                    <Button Content="다음"
+                        Command="{Binding NextSearchResultCommand}"
+                        Margin="6,0,0,0"
+                        Padding="10,6"/>
+                </StackPanel>
+
+                <TextBlock Text="{Binding SearchSummary}"
+                    Foreground="{DynamicResource SecondaryTextBrush}"
+                    VerticalAlignment="Center"
+                    Margin="12,4,0,4"/>
+            </WrapPanel>
         </Border>
 
         <!-- 중앙 작업 영역 -->
@@ -63,7 +101,7 @@
             </Grid.ColumnDefinitions>
 
             <Border Grid.Column="0"
-                    Padding="16">
+                Padding="16">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -72,26 +110,26 @@
                     </Grid.RowDefinitions>
 
                     <ListBox Grid.Row="0"
-                             MaxHeight="112"
-                             ItemsSource="{Binding Tracks}"
-                             SelectedItem="{Binding SelectedTrack, Mode=TwoWay}"
-                             DisplayMemberPath="Name"
-                             Background="{DynamicResource CanvasBrush}"
-                             Foreground="{DynamicResource PrimaryTextBrush}"
-                             BorderThickness="0">
+                        MaxHeight="112"
+                        ItemsSource="{Binding Tracks}"
+                        SelectedItem="{Binding SelectedTrack, Mode=TwoWay}"
+                        DisplayMemberPath="Name"
+                        Background="{DynamicResource CanvasBrush}"
+                        Foreground="{DynamicResource PrimaryTextBrush}"
+                        BorderThickness="0">
 
                         <ListBox.ItemContainerStyle>
                             <Style TargetType="{x:Type ListBoxItem}">
                                 <Setter Property="Padding"
-                                        Value="12,8" />
+                                    Value="12,8" />
                             </Style>
                         </ListBox.ItemContainerStyle>
                     </ListBox>
 
                     <Border Grid.Row="1"
-                            BorderBrush="{DynamicResource DividerBrush}"
-                            BorderThickness="0,1,0,0"
-                            Margin="0,16,0,0">
+                        BorderBrush="{DynamicResource DividerBrush}"
+                        BorderThickness="0,1,0,0"
+                        Margin="0,16,0,0">
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="*"/>
@@ -109,7 +147,8 @@
                                 Grid.Column="0"
                                 Tracks="{Binding Tracks}"
                                 AxisBrush="{DynamicResource SecondaryTextBrush}"
-                                GridLineBrush="{DynamicResource DividerBrush}"/>
+                                GridLineBrush="{DynamicResource DividerBrush}"
+                                SelectedSpan="{Binding SelectedSpan, Mode=TwoWay}"/>
 
                             <ScrollBar
                                 Grid.Row="0"
@@ -136,7 +175,7 @@
 
                     </Border>
                     <ScrollViewer Grid.Row="2" MaxHeight="64" Margin="0,5,0,0"
-                                  VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                        VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                         <WrapPanel>
                             <ItemsControl ItemsSource="{Binding Tracks}">
                                 <ItemsControl.ItemsPanel>
@@ -148,72 +187,242 @@
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal" Margin="0,0,12,0">
                                             <Rectangle Width="8" Height="8" Margin="0,0,5,0"
-                                                   Fill="{Binding Id, Converter={StaticResource TrackBrushConverter}}" />
+                                                Fill="{Binding Id, Converter={StaticResource TrackBrushConverter}}" />
                                             <TextBlock Text="{Binding Name}" FontSize="11"
-                                                   Foreground="{DynamicResource SecondaryTextBrush}" />
+                                                Foreground="{DynamicResource SecondaryTextBrush}" />
                                         </StackPanel>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
                             <TextBlock Text="│ 0 ms   ▧ 종료 누락 (표시 범위까지)" FontSize="11"
-                                   Foreground="{DynamicResource SecondaryTextBrush}" />
+                                Foreground="{DynamicResource SecondaryTextBrush}" />
                         </WrapPanel>
                     </ScrollViewer>
                 </Grid>
             </Border>
 
             <Border Grid.Column="1"
-                    Background="{DynamicResource SurfaceBrush}"
-                    BorderBrush="{DynamicResource DividerBrush}"
-                    BorderThickness="1,0,0,0"
-                    Padding="16">
+                Background="{DynamicResource SurfaceBrush}"
+                BorderBrush="{DynamicResource DividerBrush}"
+                BorderThickness="1,0,0,0"
+                Padding="16">
                 <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                     <StackPanel>
                         <TextBlock Text="INSPECTOR"
-                             Foreground="{DynamicResource SecondaryTextBrush}" />
+                            Foreground="{DynamicResource SecondaryTextBrush}" />
 
                         <TextBlock Text="선택한 Track"
-                             Foreground="{DynamicResource SecondaryTextBrush}"
-                             Margin="0,24,0,6" />
+                            Foreground="{DynamicResource SecondaryTextBrush}"
+                            Margin="0,24,0,6" />
 
                         <TextBlock Text="{Binding SelectedTrack.Name,
-                                              TargetNullValue='선택 없음',
-                                              FallbackValue='선택 없음'}"
-                               Foreground="{DynamicResource PrimaryTextBrush}"
-                               FontSize="18"
-                               TextWrapping="Wrap" />
+                            TargetNullValue='선택 없음',
+                            FallbackValue='선택 없음'}"
+                            Foreground="{DynamicResource PrimaryTextBrush}"
+                            FontSize="18"
+                            TextWrapping="Wrap" />
 
                         <TextBlock Text="Track ID"
-                               Foreground="{DynamicResource SecondaryTextBrush}"
-                               Margin="0,20,0,6" />
+                            Foreground="{DynamicResource SecondaryTextBrush}"
+                            Margin="0,20,0,6" />
 
                         <TextBlock Text="{Binding SelectedTrack.Id,
-                                              TargetNullValue='—',
-                                              FallbackValue='—'}"
-                               Foreground="{DynamicResource PrimaryTextBrush}" />
+                            TargetNullValue='—',
+                            FallbackValue='—'}"
+                            Foreground="{DynamicResource PrimaryTextBrush}" />
+
+                        <CheckBox Content="타임라인에서 Track 펼치기"
+                            IsChecked="{Binding SelectedTrack.IsExpanded, Mode=TwoWay}"
+                            Foreground="{DynamicResource PrimaryTextBrush}"
+                            Margin="0,16,0,0">
+                            <CheckBox.Style>
+                                <Style TargetType="CheckBox">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding SelectedTrack}" Value="{x:Null}">
+                                            <Setter Property="IsEnabled" Value="False"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </CheckBox.Style>
+                        </CheckBox>
 
                         <TextBlock Text="작업 목록"
-                             Foreground="{DynamicResource SecondaryTextBrush}"
-                             Margin="0,24,0,8"/>
+                            Foreground="{DynamicResource SecondaryTextBrush}"
+                            Margin="0,24,0,8"/>
 
-                        <ItemsControl ItemsSource="{Binding SelectedTrack.Spans}">
-                            <ItemsControl.ItemTemplate>
+                        <ListBox
+                            ItemsSource="{Binding SelectedTrack.Spans}"
+                            SelectedItem="{Binding SelectedSpan, Mode=TwoWay}"
+                            MaxHeight="180"
+                            Background="{DynamicResource CanvasBrush}"
+                            Foreground="{DynamicResource PrimaryTextBrush}"
+                            BorderThickness="0"
+                            ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+
+                            <ListBox.ItemTemplate>
                                 <DataTemplate>
-                                    <Border BorderBrush="{DynamicResource DividerBrush}"
-                                        BorderThickness="0,0,0,1"
-                                        Padding="0,10">
-                                        <StackPanel>
-                                            <TextBlock Text="{Binding Name}"
-                                                   Foreground="{DynamicResource PrimaryTextBrush}"
-                                                   TextWrapping="Wrap"/>
-                                            <TextBlock Text="{Binding DurationText}"
-                                                   Foreground="{DynamicResource SecondaryTextBrush}"
-                                                   Margin="0,4,0,0"/>
-                                        </StackPanel>
-                                    </Border>
+                                    <StackPanel Margin="0,4">
+                                        <TextBlock Text="{Binding Name}"
+                                            TextWrapping="Wrap"/>
+                                        <TextBlock Text="{Binding DurationText}"
+                                            Margin="0,4,0,0"
+                                            FontSize="11"/>
+                                    </StackPanel>
                                 </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+
+                        <TextBlock Text="선택한 Span"
+                            Foreground="{DynamicResource SecondaryTextBrush}"
+                            Margin="0,24,0,8"/>
+                        <TextBlock Text="{Binding SelectedSpan.Name,
+                            TargetNullValue='선택 없음',
+                            FallbackValue='선택 없음'}"
+                            Foreground="{DynamicResource PrimaryTextBrush}"
+                            FontSize="16"
+                            TextWrapping="Wrap"/>
+                        <TextBlock Text="{Binding SelectedSpan.Id,
+                            TargetNullValue='—',
+                            FallbackValue='—'}"
+                            Foreground="{DynamicResource SecondaryTextBrush}"
+                            Margin="0,8,0,0"
+                            TextWrapping="Wrap"/>
+                        <Grid Margin="0,16,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <TextBlock Grid.Row="0"
+                                Text="시작 시각"
+                                Foreground="{DynamicResource SecondaryTextBrush}"
+                                Margin="0,0,16,8"/>
+
+                            <TextBlock Grid.Row="0"
+                                Grid.Column="1"
+                                Text="{Binding SelectedSpan.StartTimeText,
+                                TargetNullValue='—',
+                                FallbackValue='—'}"
+                                Foreground="{DynamicResource PrimaryTextBrush}"
+                                TextWrapping="Wrap"
+                                Margin="0,0,0,8"/>
+
+                            <TextBlock Grid.Row="1"
+                                Text="종료 시각"
+                                Foreground="{DynamicResource SecondaryTextBrush}"
+                                Margin="0,0,16,8"/>
+
+                            <TextBlock Grid.Row="1"
+                                Grid.Column="1"
+                                Text="{Binding SelectedSpan.EndTimeText,
+                                TargetNullValue='—',
+                                FallbackValue='—'}"
+                                Foreground="{DynamicResource PrimaryTextBrush}"
+                                TextWrapping="Wrap"
+                                Margin="0,0,0,8"/>
+
+                            <TextBlock Grid.Row="2"
+                                Text="소요 시간"
+                                Foreground="{DynamicResource SecondaryTextBrush}"
+                                Margin="0,0,16,8"/>
+
+                            <TextBlock Grid.Row="2"
+                                Grid.Column="1"
+                                Text="{Binding SelectedSpan.DurationText,
+                                TargetNullValue='—',
+                                FallbackValue='—'}"
+                                Foreground="{DynamicResource PrimaryTextBrush}"
+                                TextWrapping="Wrap"
+                                Margin="0,0,0,8"/>
+
+                            <TextBlock Grid.Row="3"
+                                Text="상태"
+                                Foreground="{DynamicResource SecondaryTextBrush}"
+                                Margin="0,0,16,0"/>
+
+                            <TextBlock Grid.Row="3"
+                                Grid.Column="1"
+                                Text="{Binding SelectedSpan.StatusText,
+                                TargetNullValue='—',
+                                FallbackValue='—'}"
+                                Foreground="{DynamicResource PrimaryTextBrush}"
+                                TextWrapping="Wrap"/>
+                        </Grid>
+                        <TextBlock Text="Args"
+                            Foreground="{DynamicResource SecondaryTextBrush}"
+                            Margin="0,24,0,8"/>
+
+                        <TextBox Text="{Binding SelectedSpan.ArgsText,
+                            Mode=OneWay,
+                            TargetNullValue='—',
+                            FallbackValue='—'}"
+                            IsReadOnly="True"
+                            TextWrapping="Wrap"
+                            MaxHeight="200"
+                            VerticalScrollBarVisibility="Auto"
+                            HorizontalScrollBarVisibility="Disabled"
+                            Background="{DynamicResource CanvasBrush}"
+                            Foreground="{DynamicResource PrimaryTextBrush}"
+                            BorderBrush="{DynamicResource DividerBrush}"
+                            Padding="8"
+                            FontFamily="Consolas"/>
+
+                        <TextBlock Text="원본 위치"
+                            Foreground="{DynamicResource SecondaryTextBrush}"
+                            Margin="0,24,0,8"/>
+
+                        <TextBox Text="{Binding SelectedSpan.SourceFileText,
+                            Mode=OneWay,
+                            TargetNullValue='—',
+                            FallbackValue='—'}"
+                            IsReadOnly="True"
+                            TextWrapping="Wrap"
+                            Background="{DynamicResource CanvasBrush}"
+                            Foreground="{DynamicResource PrimaryTextBrush}"
+                            BorderBrush="{DynamicResource DividerBrush}"
+                            Padding="8"/>
+
+                        <Grid Margin="0,8,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <TextBlock Text="시작 레코드"
+                                Foreground="{DynamicResource SecondaryTextBrush}"
+                                Margin="0,0,16,8"/>
+
+                            <TextBlock Grid.Column="1"
+                                Text="{Binding SelectedSpan.BeginLineText,
+                                TargetNullValue='—',
+                                FallbackValue='—'}"
+                                Foreground="{DynamicResource PrimaryTextBrush}"
+                                Margin="0,0,0,8"/>
+
+                            <TextBlock Grid.Row="1"
+                                Text="종료 레코드"
+                                Foreground="{DynamicResource SecondaryTextBrush}"
+                                Margin="0,0,16,0"/>
+
+                            <TextBlock Grid.Row="1"
+                                Grid.Column="1"
+                                Text="{Binding SelectedSpan.EndLineText,
+                                TargetNullValue='—',
+                                FallbackValue='—'}"
+                                Foreground="{DynamicResource PrimaryTextBrush}"/>
+                        </Grid>
                     </StackPanel>
                 </ScrollViewer>
             </Border>
@@ -221,11 +430,11 @@
 
         <!-- 하단 상태 표시줄 -->
         <Border Grid.Row="2"
-                Background="{DynamicResource SurfaceBrush}"
-                Padding="12,6">
+            Background="{DynamicResource SurfaceBrush}"
+            Padding="12,6">
             <TextBlock Text="{Binding StatusText}"
-                       Foreground="{DynamicResource SecondaryTextBrush}"
-                       FontSize="12" />
+                Foreground="{DynamicResource SecondaryTextBrush}"
+                FontSize="12" />
         </Border>
     </Grid>
 </Window>

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Timeline.Viewer.ViewModels;
+using System.Text.Json;
 
 namespace Timeline.Viewer.Samples
 {
@@ -14,7 +15,21 @@ namespace Timeline.Viewer.Samples
                 "span-1",
                 "Load configuration",
                 12_000,
-                52_000));
+                52_000,
+                args: new Dictionary<string, JsonElement>
+                {
+                    ["file"] = JsonSerializer.SerializeToElement("appsettings.json"),
+                    ["bytes"] = JsonSerializer.SerializeToElement(4096),
+                    ["cacheHit"] = JsonSerializer.SerializeToElement(false),
+                    ["options"] = JsonSerializer.SerializeToElement(new
+                    {
+                        environment = "Development",
+                        reloadOnChange = true
+                    })
+                },
+                sourceFilePath: @"C:\Samples\sample-session.jsonl",
+                beginLineNumber: 12,
+                endLineNumber: 18));
 
             mainTrack.Spans.Add(new SpanItemViewModel(
                 "span-2",

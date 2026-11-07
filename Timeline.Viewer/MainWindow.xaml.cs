@@ -15,7 +15,9 @@ namespace Timeline.Viewer
 
             var themeService = new ThemeService();
 
-            DataContext = new MainWindowViewModel(themeService);
+            var viewModel = new MainWindowViewModel(themeService);
+            viewModel.SpanRevealRequested += TimelineView.RevealSpan;
+            DataContext = viewModel;
         }
 
         private void OnFitToView(object sender, RoutedEventArgs e)

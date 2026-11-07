@@ -152,6 +152,57 @@ internal static class Program
         Check(vertical.Viewport > 100 && vertical.MaxOffset > 0 && horizontal.MaxOffset > 0,
             "128 tracks and legend leave a usable chart in the minimum window");
         Check(horizontal.Offset == 0 && vertical.Offset == 0, "initial left and top bounds");
+        vm.SearchText = "Checkpoint";
+        vm.SearchCommand.Execute(null);
+        content.UpdateLayout();
+        Check(vm.SearchResults.Count == 128 && ReferenceEquals(vm.SelectedSpan, vm.Tracks[0].Spans[0]),
+            "search selects the first result");
+        vm.SelectedSpan = vm.SearchResults[2];
+        Check(vm.SearchSummary == "검색 결과 3 / 128", "direct selection updates search position");
+        vm.SelectedSpan = null;
+        Check(vm.SearchSummary == "검색 결과 128개 · 결과 선택 없음", "cleared selection updates search summary");
+        vm.SelectedSpan = vm.SearchResults[0];
+        TrackItemViewModel firstTrack = vm.Tracks[0];
+        SpanItemViewModel selected = firstTrack.Spans[0];
+        double expandedHeight = vertical.Extent;
+        double timeExtent = horizontal.Extent;
+        firstTrack.IsExpanded = false;
+        content.UpdateLayout();
+        Check(vertical.Extent == expandedHeight - 32 && horizontal.Extent == timeExtent,
+            "collapse reduces row height without changing time range");
+        Check(ReferenceEquals(vm.SelectedSpan, selected) && ReferenceEquals(timeline.SelectedSpan, selected),
+            "collapse preserves selection through binding");
+        var hitTest = typeof(TimelineSurface).GetMethod("FindSpanAt",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
+        Check(hitTest.Invoke(timeline, new object[] { new Point(157, 50) }) is null,
+            "collapsed spans have no click target");
+        firstTrack.IsExpanded = true;
+        content.UpdateLayout();
+        Check(vertical.Extent == expandedHeight
+            && ReferenceEquals(hitTest.Invoke(timeline, new object[] { new Point(157, 50) }), selected),
+            "expansion restores the selected span click target");
+        vm.Tracks[127].IsExpanded = false;
+        vm.PreviousSearchResultCommand.Execute(null);
+        content.UpdateLayout();
+        Check(ReferenceEquals(vm.SelectedSpan, vm.Tracks[127].Spans[0])
+            && Math.Abs(horizontal.Offset - horizontal.MaxOffset) < 0.001
+            && vertical.Offset == vertical.MaxOffset,
+            "previous wraps to the last result and reveals it on both axes");
+        Check(vm.Tracks[127].IsExpanded, "search automatically expands the destination track");
+        firstTrack.IsExpanded = false;
+        timeline.RevealSpan(selected);
+        content.UpdateLayout();
+        Check(firstTrack.IsExpanded && horizontal.Offset == 0 && vertical.Offset == 0,
+            "keyboard reveal path expands and scrolls to the destination");
+        vm.NextSearchResultCommand.Execute(null);
+        content.UpdateLayout();
+        Check(ReferenceEquals(vm.SelectedSpan, vm.Tracks[0].Spans[0])
+            && horizontal.Offset == 0 && vertical.Offset == 0,
+            "next wraps to the first result and reveals it");
+        vm.SearchText = "no matching span";
+        vm.SearchCommand.Execute(null);
+        Check(!vm.NextSearchResultCommand.CanExecute(null) && !vm.PreviousSearchResultCommand.CanExecute(null),
+            "empty search disables navigation");
         horizontal.ScrollTo(horizontal.Extent);
         vertical.ScrollTo(vertical.Extent);
         Resize(1280, 760);
