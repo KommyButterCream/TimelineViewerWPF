@@ -38,6 +38,16 @@
                         Command="{Binding OpenFileCommand}"
                         Style="{StaticResource AccentButtonStyle}" />
 
+                <Button Content="읽기 취소"
+                        Command="{Binding CancelLoadCommand}"
+                        Margin="8,0,0,0"
+                        Padding="12,6"/>
+
+                <TextBlock Text="{Binding LoadingStageText}"
+                    Foreground="{DynamicResource SecondaryTextBrush}"
+                    VerticalAlignment="Center"
+                    Margin="12,4,0,4"/>
+
                 <StackPanel Orientation="Horizontal" Margin="12,4,0,4">
                     <TextBlock Text="읽기 모드"
                         Foreground="{DynamicResource SecondaryTextBrush}"

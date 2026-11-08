@@ -13,6 +13,7 @@ namespace Timeline.Viewer.Services
         Task<TraceDocument> LoadAsync(
             string filePath,
             TraceReadMode mode = TraceReadMode.Recovery,
-            CancellationToken cancellationToken = default);
+            CancellationToken cancellationToken = default,
+            IProgress<TraceLoadProgress>? progress = null);
     }
 }

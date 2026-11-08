@@ -9,6 +9,7 @@ using System.IO;
 using System.Threading.Tasks;
 using Timeline.Analysis;
 using Timeline.IO;
+using System.Threading;
 
 namespace Timeline.Viewer.ViewModels
 {
@@ -19,15 +20,23 @@ namespace Timeline.Viewer.ViewModels
         private readonly IThemeService _themeService;
         private readonly IFileDialogService _fileDialogService;
         private readonly ITraceLoadService _traceLoadService;
-        private bool _isLoading;
+        private ViewerState _state = ViewerState.Ready;
+        private long _loadGeneration;
         public TraceDocument? CurrentDocument { get; private set; }
-        public bool IsLoading
+        public bool IsLoading => State == ViewerState.Loading;
+
+        public ViewerState State
         {
-            get => _isLoading;
+            get => _state;
             private set
             {
-                if (SetProperty(ref _isLoading, value))
+                bool wasLoading = IsLoading;
+                if (SetProperty(ref _state, value) && wasLoading != IsLoading)
+                {
+                    OnPropertyChanged(nameof(IsLoading));
                     OpenFileCommand.NotifyCanExecuteChanged();
+                    CancelLoadCommand.NotifyCanExecuteChanged();
+                }
             }
         }
         private string _statusText = DefaultStatusText;
@@ -41,6 +50,11 @@ namespace Timeline.Viewer.ViewModels
 
         private ObservableCollection<TrackItemViewModel> _tracks = new();
         private TraceReadMode _selectedReadMode = TraceReadMode.Recovery;
+
+        private CancellationTokenSource? _loadCancellation;
+
+        private TraceLoadStage _loadingStage;
+        private long _loadedRecordCount;
 
         public MainWindowViewModel(
             IThemeService themeService,
@@ -62,6 +76,11 @@ namespace Timeline.Viewer.ViewModels
             AddSampleSpanCommand = new RelayCommand(AddSampleSpan);
 
             SearchCommand = new RelayCommand(Search);
+
+            CancelLoadCommand = new RelayCommand(CancelLoad,
+                () => IsLoading
+                && _loadCancellation is not null
+                && !_loadCancellation.IsCancellationRequested);
 
             OpenFileCommand = new AsyncRelayCommand(OpenFileAsync, OnOpenFileError, () => !IsLoading);
 
@@ -94,6 +113,7 @@ namespace Timeline.Viewer.ViewModels
         public RelayCommand PreviousSearchResultCommand { get; }
         public RelayCommand NextSearchResultCommand { get; }
 
+        public RelayCommand CancelLoadCommand { get; }
         public AsyncRelayCommand OpenFileCommand { get; }
 
         public event Action<SpanItemViewModel>? SpanRevealRequested;
@@ -197,6 +217,47 @@ namespace Timeline.Viewer.ViewModels
             get => _selectedReadMode;
             set => SetProperty(ref _selectedReadMode, value);
         }
+
+        public TraceLoadStage LoadingStage
+        {
+            get => _loadingStage;
+            private set
+            {
+                if (SetProperty(ref _loadingStage, value))
+                {
+                    OnPropertyChanged(nameof(LoadingStageText));
+                }
+            }
+        }
+
+        public long LoadedRecordCount
+        {
+            get => _loadedRecordCount;
+            private set
+            {
+                if (SetProperty(ref _loadedRecordCount, value))
+                {
+                    OnPropertyChanged(nameof(LoadingStageText));
+                }
+            }
+        }
+
+        public string LoadingStageText => LoadingStage switch
+        {
+            TraceLoadStage.Reading =>
+                $"파일 읽는 중 · 정상 레코드 {LoadedRecordCount:N0}개",
+
+            TraceLoadStage.Analyzing =>
+                $"분석 중 · 정상 레코드 {LoadedRecordCount:N0}개",
+
+            TraceLoadStage.Preparing =>
+                "화면 데이터 준비 중",
+
+            TraceLoadStage.Cancelling =>
+                "취소 요청 중 · 현재 작업이 끝나기를 기다립니다.",
+
+            _ => string.Empty
+        };
         private void ToggleTheme()
         {
             AppTheme nextTheme =
@@ -315,16 +376,20 @@ namespace Timeline.Viewer.ViewModels
             SelectSearchResult(index);
         }
 
-        private static List<TrackItemViewModel> CreateTrackViewModels(TraceDocument document)
+        private static List<TrackItemViewModel> CreateTrackViewModels(TraceDocument document, CancellationToken cancellationToken)
         {
             var tracks = new List<TrackItemViewModel>();
 
-            foreach(TraceTrack sourceTrack in document.Analysis.Tracks)
+            foreach (TraceTrack sourceTrack in document.Analysis.Tracks)
             {
+                cancellationToken.ThrowIfCancellationRequested();
+
                 var track = new TrackItemViewModel(sourceTrack.Id, sourceTrack.Name);
 
                 foreach (TraceSpan sourceSpan in sourceTrack.Spans)
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
+
                     var span = new SpanItemViewModel(
                         sourceSpan.Id,
                         sourceSpan.Name,
@@ -349,7 +414,7 @@ namespace Timeline.Viewer.ViewModels
         {
             string? filePath = _fileDialogService.SelectTraceFile();
 
-            if(filePath is null)
+            if (filePath is null)
             {
                 return;
             }
@@ -360,32 +425,90 @@ namespace Timeline.Viewer.ViewModels
         public async Task OpenFilePathAsync(string filePath)
         {
             if (IsLoading)
+            {
                 return;
+            }
 
-            IsLoading = true;
+            using var cancellation = new CancellationTokenSource();
+            long generation = ++_loadGeneration;
+            ViewerState previousState = State;
+            ViewerState completionState = previousState;
+
+            _loadCancellation = cancellation;
+
+            LoadedRecordCount = 0;
+            LoadingStage = TraceLoadStage.Reading;
+            State = ViewerState.Loading;
+
             try
             {
-                await LoadAndApplyAsync(filePath);
+                await LoadAndApplyAsync(filePath, generation, cancellation.Token);
+                completionState = CurrentDocument is { DiagnosticCount: > 0 }
+                    ? ViewerState.ReadyWithDiagnostics
+                    : ViewerState.Ready;
+            }
+            catch (OperationCanceledException exception)
+            {
+                if (generation == _loadGeneration)
+                    OnOpenFileError(exception);
             }
             catch (Exception exception)
             {
-                OnOpenFileError(exception);
+                completionState = ViewerState.Failed;
+                if (generation == _loadGeneration)
+                    OnOpenFileError(exception);
             }
             finally
             {
-                IsLoading = false;
+                if (generation == _loadGeneration)
+                {
+                    _loadCancellation = null;
+                    LoadingStage = TraceLoadStage.None;
+                    State = completionState;
+                }
             }
         }
 
-        private async Task LoadAndApplyAsync(string filePath)
+        private async Task LoadAndApplyAsync(string filePath, long generation, CancellationToken cancellationToken)
         {
             TraceReadMode mode = SelectedReadMode;
 
             StatusText = $"읽는 중 · {Path.GetFileName(filePath)} · {mode}";
 
-            TraceDocument document = await _traceLoadService.LoadAsync(filePath, mode);
+            bool acceptProgress = true;
+            var progress = new Progress<TraceLoadProgress>(update =>
+            {
+                if (!acceptProgress || generation != _loadGeneration
+                    || cancellationToken.IsCancellationRequested)
+                    return;
 
-            List<TrackItemViewModel> loadedTracks = await Task.Run(() => CreateTrackViewModels(document));
+                LoadedRecordCount = update.RecordCount;
+                LoadingStage = update.Stage;
+            });
+
+            TraceDocument document;
+            try
+            {
+                document = await _traceLoadService.LoadAsync(
+                    filePath, mode, cancellationToken, progress);
+            }
+            finally
+            {
+                acceptProgress = false;
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+            if (generation != _loadGeneration)
+                return;
+            LoadingStage = TraceLoadStage.Preparing;
+
+            List<TrackItemViewModel> loadedTracks = await Task.Run(() => CreateTrackViewModels(document, cancellationToken), cancellationToken);
+
+            cancellationToken.ThrowIfCancellationRequested();
+
+            // await 중 작업이 바뀌었다면 오래된 문서를 화면에 게시하지 않습니다.
+            if (generation != _loadGeneration)
+                return;
 
             var newTracks = new ObservableCollection<TrackItemViewModel>(loadedTracks);
 
@@ -443,6 +566,21 @@ namespace Timeline.Viewer.ViewModels
                 : "파일 열기 실패";
 
             StatusText = $"{prefix} · {message}";
+        }
+
+        private void CancelLoad()
+        {
+            if (!CancelLoadCommand.CanExecute(null))
+            {
+                return;
+            }
+
+            _loadCancellation!.Cancel();
+
+            LoadingStage = TraceLoadStage.Cancelling;
+            StatusText = LoadingStageText;
+
+            CancelLoadCommand.NotifyCanExecuteChanged();
         }
     }
 }

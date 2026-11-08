@@ -16,20 +16,22 @@ namespace Timeline.Viewer.Services
         public Task<TraceDocument> LoadAsync(
             string filePath,
             TraceReadMode mode = TraceReadMode.Recovery,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken = default,
+            IProgress<TraceLoadProgress>? progress = null)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
 
             string fullPath = Path.GetFullPath(filePath);
 
             return Task.Run(
-                () => LoadCoreAsync(fullPath, mode, cancellationToken), cancellationToken);
+                () => LoadCoreAsync(filePath: fullPath, mode, cancellationToken, progress), cancellationToken);
         }
 
         private static async Task<TraceDocument> LoadCoreAsync(
             string filePath,
             TraceReadMode mode,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken,
+            IProgress<TraceLoadProgress>? progress)
         {
             var reader = new JsonlTraceReader(new TraceReadOptions
             {
@@ -38,6 +40,8 @@ namespace Timeline.Viewer.Services
 
             var assembler = new TraceAssembler();
             var readDiagnostics = new List<TraceReadDiagnostic>();
+            long recordCount = 0;
+            progress?.Report(new TraceLoadProgress(TraceLoadStage.Reading, recordCount));
 
             await foreach(TraceReadResult result in reader.ReadAsync(filePath, cancellationToken))
             {
@@ -47,7 +51,7 @@ namespace Timeline.Viewer.Services
                 {
                     readDiagnostics.Add(diagnostic);
 
-                    if(diagnostic.IsFatal)
+                    if (diagnostic.IsFatal)
                     {
                         throw new InvalidDataException(
                             $"{diagnostic.LineNumber}행 "
@@ -60,11 +64,18 @@ namespace Timeline.Viewer.Services
                 if(result.Record is TraceRecord record)
                 {
                     assembler.Add(record, result.LineNumber);
+                    recordCount++;
+                    if (recordCount % 1000 == 0)
+                    {
+                        progress?.Report(new TraceLoadProgress(
+                            TraceLoadStage.Reading, recordCount));
+                    }
                 }
             }
 
             cancellationToken.ThrowIfCancellationRequested();
 
+            progress?.Report(new TraceLoadProgress(TraceLoadStage.Analyzing, recordCount));
             TraceAnalysisResult analysis = assembler.Build();
 
             cancellationToken.ThrowIfCancellationRequested();
