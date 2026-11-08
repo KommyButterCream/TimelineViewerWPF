@@ -16,7 +16,7 @@
 *.bak
 *.dmp
 
-# Local trace output (keep JSONL samples elsewhere under version control)
+# Local trace output
 /logs/
 
 # Test results
@@ -25,3 +25,7 @@
 
 # Local design and learning documents
 /docs/
+
+# Local samples and verification code
+/samples/
+/tests/

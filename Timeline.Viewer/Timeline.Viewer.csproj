@@ -9,7 +9,9 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Timeline.Analysis\Timeline.Analysis.csproj" />
     <ProjectReference Include="..\Timeline.Format\Timeline.Format.csproj" />
+    <ProjectReference Include="..\Timeline.IO\Timeline.IO.csproj" />
   </ItemGroup>
 
 </Project>

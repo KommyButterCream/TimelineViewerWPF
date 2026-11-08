@@ -12,7 +12,10 @@
     Height="760"
     MinWidth="900"
     MinHeight="560"
-    WindowStartupLocation="CenterScreen">
+    WindowStartupLocation="CenterScreen"
+    AllowDrop="True"
+    PreviewDragOver="OnFileDragOver"
+    PreviewDrop="OnFileDrop">
 
     <Window.Resources>
         <!-- Converter 객체 등록 -->
@@ -32,7 +35,21 @@
             Padding="12">
             <WrapPanel Orientation="Horizontal">
                 <Button Content="로그 열기"
-                    Style="{StaticResource AccentButtonStyle}" />
+                        Command="{Binding OpenFileCommand}"
+                        Style="{StaticResource AccentButtonStyle}" />
+
+                <StackPanel Orientation="Horizontal" Margin="12,4,0,4">
+                    <TextBlock Text="읽기 모드"
+                        Foreground="{DynamicResource SecondaryTextBrush}"
+                        VerticalAlignment="Center"
+                        Margin="0,0,8,0"/>
+                    <ComboBox Width="110"
+                        ItemsSource="{Binding ReadModes}"
+                        SelectedItem="{Binding SelectedReadMode, Mode=TwoWay}"
+                        VerticalContentAlignment="Center"
+                        AutomationProperties.Name="로그 읽기 모드"
+                        ToolTip="Recovery: 복구 가능한 오류를 건너뜁니다. Strict: 읽기 진단이 발생하면 중단합니다."/>
+                </StackPanel>
 
                 <TextBlock Text="Timeline.Viewer"
                     Foreground="{DynamicResource PrimaryTextBrush}"
@@ -433,6 +450,8 @@
             Background="{DynamicResource SurfaceBrush}"
             Padding="12,6">
             <TextBlock Text="{Binding StatusText}"
+                ToolTip="{Binding StatusText}"
+                TextTrimming="CharacterEllipsis"
                 Foreground="{DynamicResource SecondaryTextBrush}"
                 FontSize="12" />
         </Border>

@@ -2,6 +2,7 @@ using System;
 using System.Globalization;
 using System.Collections.Generic;
 using System.Text.Json;
+using Timeline.Analysis;
 
 namespace Timeline.Viewer.ViewModels
 {
@@ -20,7 +21,8 @@ namespace Timeline.Viewer.ViewModels
             IReadOnlyDictionary<string, JsonElement>? args = null,
             string? sourceFilePath = null,
             long? beginLineNumber = null,
-            long? endLineNumber = null)
+            long? endLineNumber = null,
+            TraceSpanStatus? analysisStatus = null)
         {
             if (startTimeUs < 0)
             {
@@ -51,6 +53,7 @@ namespace Timeline.Viewer.ViewModels
             SourceFilePath = sourceFilePath;
             BeginLineNumber = beginLineNumber;
             EndLineNumber = endLineNumber;
+            AnalysisStatus = analysisStatus;
 
             ArgsText = args is null || args.Count == 0
                 ? "Args 없음"
@@ -65,6 +68,8 @@ namespace Timeline.Viewer.ViewModels
         public double? DurationMs => DurationUs / 1000.0;
         public bool IsMissingEnd => EndTimeUs is null;
         public bool IsInstant => DurationUs == 0;
+
+        public TraceSpanStatus? AnalysisStatus { get; }
         public string DurationText => DurationMs is double duration
             ? duration.ToString("0.###", CultureInfo.CurrentCulture) + " ms"
             : "— · 종료 누락";
@@ -75,7 +80,14 @@ namespace Timeline.Viewer.ViewModels
                  (endTimeUs / 1000.0).ToString("0.###", CultureInfo.CurrentCulture) + " ms"
                 : "— · 종료 누락";
 
-        public string StatusText => IsMissingEnd ? "종료 누락" : IsInstant ? "순간 이벤트" : "완료";
+        public string StatusText =>
+            AnalysisStatus == TraceSpanStatus.InvalidEnd
+                ? "종료 시각 오류"
+                : IsMissingEnd
+                    ? "종료 누락"
+                    : IsInstant
+                        ? "순간 이벤트"
+                        : "완료";
         public string ArgsText { get; }
         public string? SourceFilePath { get; }
         public long? BeginLineNumber { get; }
