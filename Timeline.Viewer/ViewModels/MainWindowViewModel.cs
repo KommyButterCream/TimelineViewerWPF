@@ -1,19 +1,20 @@
 using System;
-using System.Collections.ObjectModel;
-using Timeline.Viewer.Commands;
-using Timeline.Viewer.Models;
-using Timeline.Viewer.Services;
-using Timeline.Viewer.Samples;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Diagnostics.Tracing;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using Timeline.Analysis;
 using Timeline.IO;
-using System.Threading;
+using Timeline.Viewer.Commands;
+using Timeline.Viewer.Models;
+using Timeline.Viewer.Samples;
+using Timeline.Viewer.Services;
 
 namespace Timeline.Viewer.ViewModels
 {
-    public class MainWindowViewModel : ObservableObject
+    public partial class MainWindowViewModel : ObservableObject
     {
         private const string DefaultStatusText = "Ready · 샘플 세션";
 
@@ -36,6 +37,7 @@ namespace Timeline.Viewer.ViewModels
                     OnPropertyChanged(nameof(IsLoading));
                     OpenFileCommand.NotifyCanExecuteChanged();
                     CancelLoadCommand.NotifyCanExecuteChanged();
+                    UpdateDiagnosticCommands();
                 }
             }
         }
@@ -56,6 +58,8 @@ namespace Timeline.Viewer.ViewModels
         private TraceLoadStage _loadingStage;
         private long _loadedRecordCount;
 
+        private IReadOnlyList<DiagnosticItem> _diagnostics = Array.Empty<DiagnosticItem>();
+
         public MainWindowViewModel(
             IThemeService themeService,
             IFileDialogService fileDialogService,
@@ -68,6 +72,7 @@ namespace Timeline.Viewer.ViewModels
             _themeService = themeService;
             _fileDialogService = fileDialogService;
             _traceLoadService = traceLoadService;
+            InitializeDiagnosticCommands();
 
             ResetStatusCommand = new RelayCommand(ResetStatus, CanResetStatus);
 
@@ -258,6 +263,29 @@ namespace Timeline.Viewer.ViewModels
 
             _ => string.Empty
         };
+
+        public IReadOnlyList<DiagnosticItem> Diagnostics
+        {
+            get => _diagnostics;
+            private set
+            {
+                if(SetProperty(ref _diagnostics, value))
+                {
+                    OnPropertyChanged(nameof(DiagnosticCount));
+                    OnPropertyChanged(nameof(HasDiagnostics));
+                    OnPropertyChanged(nameof(DiagnosticSummary));
+                }
+            }
+        }
+
+        public int DiagnosticCount => Diagnostics.Count;
+
+        public bool HasDiagnostics => DiagnosticCount > 0;
+
+        public string DiagnosticSummary => HasDiagnostics
+            ? $"진단 {DiagnosticCount:N0}건"
+            : "진단 없음";
+
         private void ToggleTheme()
         {
             AppTheme nextTheme =
@@ -435,6 +463,8 @@ namespace Timeline.Viewer.ViewModels
             ViewerState completionState = previousState;
 
             _loadCancellation = cancellation;
+            CancelSourcePreview();
+            NotificationText = string.Empty;
 
             LoadedRecordCount = 0;
             LoadingStage = TraceLoadStage.Reading;
@@ -502,7 +532,14 @@ namespace Timeline.Viewer.ViewModels
                 return;
             LoadingStage = TraceLoadStage.Preparing;
 
-            List<TrackItemViewModel> loadedTracks = await Task.Run(() => CreateTrackViewModels(document, cancellationToken), cancellationToken);
+            var prepared = await Task.Run(() =>
+            {
+                List<TrackItemViewModel> tracks = CreateTrackViewModels(document, cancellationToken);
+
+                IReadOnlyList<DiagnosticItem> diagnostics = DiagnosticMapper.Map(document, cancellationToken);
+
+                return (Tracks: tracks, Diagnostics: diagnostics);
+            }, cancellationToken);
 
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -510,7 +547,7 @@ namespace Timeline.Viewer.ViewModels
             if (generation != _loadGeneration)
                 return;
 
-            var newTracks = new ObservableCollection<TrackItemViewModel>(loadedTracks);
+            var newTracks = new ObservableCollection<TrackItemViewModel>(prepared.Tracks);
 
             SearchResults.Clear();
             UpdateSearchCommands();
@@ -520,17 +557,21 @@ namespace Timeline.Viewer.ViewModels
             SelectedSpan = null;
             SelectedTrack = null;
 
+            SelectedDiagnostic = null;
             Tracks = newTracks;
+            Diagnostics = prepared.Diagnostics;
             CurrentDocument = document;
             OnPropertyChanged(nameof(CurrentDocument));
             SelectedTrack = Tracks.Count > 0 ? Tracks[0] : null;
+            NotificationText = document.DiagnosticCount > 0
+                ? $"진단 포함 완료 · {document.DiagnosticCount:N0}건을 확인하세요."
+                : "완료 · 로그 파일을 열었습니다.";
 
             StatusText =
                 $"Ready · {Path.GetFileName(document.FilePath)}"
                 + $" · {mode}"
                 + $" · Track {Tracks.Count}개"
-                + $" · Span {document.Analysis.Spans.Count}개"
-                + $" · 진단 {document.DiagnosticCount}건";
+                + $" · Span {document.Analysis.Spans.Count}개";
 
             DocumentOpened?.Invoke();
         }
@@ -566,6 +607,7 @@ namespace Timeline.Viewer.ViewModels
                 : "파일 열기 실패";
 
             StatusText = $"{prefix} · {message}";
+            NotificationText = $"{prefix} · {message}";
         }
 
         private void CancelLoad()

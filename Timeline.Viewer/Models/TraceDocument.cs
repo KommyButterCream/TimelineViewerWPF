@@ -11,6 +11,7 @@ namespace Timeline.Viewer.Models
     public sealed record TraceDocument
     {
         public required string FilePath { get; init; }
+        public SourceFileStamp? SourceStamp { get; init; }
         public required TraceAnalysisResult Analysis { get; init; }
         public required IReadOnlyList<TraceReadDiagnostic> ReadDiagnostics
         {

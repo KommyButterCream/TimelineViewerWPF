@@ -33,6 +33,7 @@ namespace Timeline.Viewer.Services
             CancellationToken cancellationToken,
             IProgress<TraceLoadProgress>? progress)
         {
+            SourceFileStamp sourceStamp = SourceFileStamp.Capture(filePath);
             var reader = new JsonlTraceReader(new TraceReadOptions
             {
                 Mode = mode
@@ -80,9 +81,13 @@ namespace Timeline.Viewer.Services
 
             cancellationToken.ThrowIfCancellationRequested();
 
+            if (SourceFileStamp.Capture(filePath) != sourceStamp)
+                throw new IOException("읽는 동안 파일이 변경되었습니다. 파일을 다시 열어주세요.");
+
             return new TraceDocument
             {
                 FilePath = filePath,
+                SourceStamp = sourceStamp,
                 Analysis = analysis,
                 ReadDiagnostics = readDiagnostics.AsReadOnly()
             };

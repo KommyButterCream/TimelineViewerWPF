@@ -78,6 +78,7 @@ namespace Timeline.Viewer
 
         protected override void OnClosed(EventArgs e)
         {
+            _viewModel.CancelSourcePreview();
             _loadingTimer.Stop();
             _loadingTimer.Tick -= OnLoadingTimerTick;
             _viewModel.PropertyChanged -= OnViewModelPropertyChanged;

@@ -455,15 +455,162 @@
             </Border>
         </Grid>
 
-        <!-- 하단 상태 표시줄 -->
+        <!-- 하단 상태 표시줄과 진단 목록 -->
         <Border Grid.Row="2"
             Background="{DynamicResource SurfaceBrush}"
             Padding="12,6">
-            <TextBlock Text="{Binding StatusText}"
-                ToolTip="{Binding StatusText}"
-                TextTrimming="CharacterEllipsis"
-                Foreground="{DynamicResource SecondaryTextBrush}"
-                FontSize="12" />
+            <Expander IsExpanded="False"
+                HorizontalContentAlignment="Stretch"
+                Foreground="{DynamicResource PrimaryTextBrush}">
+                <Expander.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="{Binding DiagnosticSummary}"
+                            Foreground="{DynamicResource AccentBrush}"
+                            FontWeight="SemiBold" Margin="0,0,16,0" />
+                        <TextBlock TextTrimming="CharacterEllipsis"
+                            MaxWidth="600" Foreground="{DynamicResource SecondaryTextBrush}"
+                            FontSize="12" VerticalAlignment="Center">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Text" Value="{Binding StatusText}" />
+                                    <Setter Property="ToolTip" Value="{Binding StatusText}" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding HasNotification}" Value="True">
+                                            <Setter Property="Text" Value="{Binding NotificationText}" />
+                                            <Setter Property="ToolTip" Value="{Binding NotificationText}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                        <Button Content="알림 닫기" Command="{Binding DismissNotificationCommand}"
+                            Margin="8,0,0,0" Padding="6,0">
+                            <Button.Style>
+                                <Style TargetType="Button">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding HasNotification}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+                    </StackPanel>
+                </Expander.Header>
+
+                <Grid Margin="0,8,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="3*" />
+                        <ColumnDefinition Width="2*" />
+                    </Grid.ColumnDefinitions>
+                    <ListView ItemsSource="{Binding Diagnostics}"
+                        SelectedItem="{Binding SelectedDiagnostic, Mode=TwoWay}"
+                        SelectionMode="Single"
+                        Height="180"
+                        Background="{DynamicResource CanvasBrush}"
+                        Foreground="{DynamicResource PrimaryTextBrush}"
+                        BorderBrush="{DynamicResource DividerBrush}"
+                        ScrollViewer.CanContentScroll="True"
+                        ScrollViewer.VerticalScrollBarVisibility="Auto"
+                        ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                        VirtualizingPanel.IsVirtualizing="True"
+                        VirtualizingPanel.VirtualizationMode="Recycling"
+                        AutomationProperties.Name="진단 목록">
+                        <ListView.ItemContainerStyle>
+                            <Style TargetType="ListViewItem">
+                                <Setter Property="Foreground" Value="{DynamicResource PrimaryTextBrush}" />
+                                <Setter Property="ToolTip" Value="{Binding Message}" />
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="ListViewItem">
+                                            <Border x:Name="RowBorder" Background="Transparent"
+                                                BorderThickness="1" BorderBrush="Transparent" Padding="0,2">
+                                                <GridViewRowPresenter Content="{TemplateBinding Content}"
+                                                    Columns="{Binding View.Columns, RelativeSource={RelativeSource AncestorType=ListView}}" />
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="RowBorder" Property="Background"
+                                                        Value="{DynamicResource SurfaceBrush}" />
+                                                </Trigger>
+                                                <Trigger Property="IsSelected" Value="True">
+                                                    <Setter TargetName="RowBorder" Property="Background"
+                                                        Value="{DynamicResource SurfaceBrush}" />
+                                                    <Setter TargetName="RowBorder" Property="BorderBrush"
+                                                        Value="{DynamicResource AccentBrush}" />
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </ListView.ItemContainerStyle>
+                        <ListView.Style>
+                            <Style TargetType="{x:Type ListView}">
+                                <Setter Property="Visibility" Value="Visible" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasDiagnostics}" Value="False">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </ListView.Style>
+                        <ListView.View>
+                            <GridView>
+                                <GridViewColumn Header="출처" Width="70"
+                                    DisplayMemberBinding="{Binding SourceText}" />
+                                <GridViewColumn Header="코드" Width="170"
+                                    DisplayMemberBinding="{Binding Code}" />
+                                <GridViewColumn Header="원본 위치" Width="100"
+                                    DisplayMemberBinding="{Binding LocationText}" />
+                                <GridViewColumn Header="내용" Width="600"
+                                    DisplayMemberBinding="{Binding Message}" />
+                            </GridView>
+                        </ListView.View>
+                    </ListView>
+
+                    <TextBlock Text="현재 문서에는 진단이 없습니다."
+                        Foreground="{DynamicResource SecondaryTextBrush}"
+                        Margin="8">
+                        <TextBlock.Style>
+                            <Style TargetType="{x:Type TextBlock}">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasDiagnostics}" Value="False">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+
+                    <Grid Grid.Column="1" Height="180" Margin="12,0,0,0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+                        <TextBlock Text="{Binding DiagnosticNavigationText}"
+                            ToolTip="{Binding SelectedDiagnostic.Message}"
+                            TextTrimming="CharacterEllipsis"
+                            Foreground="{DynamicResource SecondaryTextBrush}" />
+                        <WrapPanel Grid.Row="1" Margin="0,6">
+                            <Button Content="원본 줄 보기" Command="{Binding ShowSourceCommand}"
+                                Padding="8,3" Margin="0,0,6,0" />
+                            <Button Content="관련 줄 보기" Command="{Binding ShowRelatedSourceCommand}"
+                                Padding="8,3" />
+                        </WrapPanel>
+                        <TextBox Grid.Row="2" Text="{Binding SourcePreviewText, Mode=OneWay}"
+                            IsReadOnly="True" FontFamily="Consolas" FontSize="12"
+                            HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
+                            Background="{DynamicResource CanvasBrush}"
+                            Foreground="{DynamicResource PrimaryTextBrush}"
+                            BorderBrush="{DynamicResource DividerBrush}"
+                            Padding="6" AutomationProperties.Name="원본 줄 미리보기" />
+                    </Grid>
+                </Grid>
+            </Expander>
         </Border>
     </Grid>
 </Window>
