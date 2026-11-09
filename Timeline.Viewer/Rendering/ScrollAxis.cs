@@ -11,12 +11,12 @@ namespace Timeline.Viewer.Rendering
     public sealed class ScrollAxis : ObservableObject
     {
         private double _offset;
-        public double Extent { get; private set;  }
+        public double Extent { get; private set; }
         public double Viewport { get; private set; }
 
         public double MaxOffset => Math.Max(0, Extent - Viewport);
 
-        public double Offset 
+        public double Offset
         {
             get => _offset;
             set => SetProperty(ref _offset, Math.Clamp(value, 0, MaxOffset));
@@ -27,7 +27,7 @@ namespace Timeline.Viewer.Rendering
             extent = Math.Max(0, extent);
             viewport = Math.Max(0, viewport);
 
-            if(Extent == extent && Viewport == viewport)
+            if (Extent == extent && Viewport == viewport)
             {
                 return;
             }

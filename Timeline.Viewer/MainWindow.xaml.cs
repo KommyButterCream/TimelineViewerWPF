@@ -34,7 +34,7 @@ namespace Timeline.Viewer
             _loadingTimer.Tick += OnLoadingTimerTick;
 
             _viewModel = new MainWindowViewModel(
-                themeService, 
+                themeService,
                 new FileDialogService(),
                 new TraceLoadService());
 
@@ -50,6 +50,26 @@ namespace Timeline.Viewer
         private void OnFitToView(object sender, RoutedEventArgs e)
         {
             TimelineView.FitToView();
+        }
+
+        private void OnZoomIn(object sender, RoutedEventArgs e) => TimelineView.ZoomIn();
+
+        private void OnZoomOut(object sender, RoutedEventArgs e) => TimelineView.ZoomOut();
+
+        private void OnMinimize(object sender, RoutedEventArgs e) => SystemCommands.MinimizeWindow(this);
+
+        private void OnMaximizeRestore(object sender, RoutedEventArgs e)
+        {
+            if (WindowState == WindowState.Maximized) SystemCommands.RestoreWindow(this);
+            else SystemCommands.MaximizeWindow(this);
+        }
+
+        private void OnCloseWindow(object sender, RoutedEventArgs e) => Close();
+
+        private void OnShowDiagnostics(object sender, RoutedEventArgs e)
+        {
+            _viewModel.IsDiagnosticsExpanded = true;
+            _viewModel.DismissNotificationCommand.Execute(null);
         }
 
         private void OnDocumentOpened()
@@ -136,6 +156,7 @@ namespace Timeline.Viewer
             }
 
             bool restoreFocus = _loadingWindow?.IsActive == true;
+            BusyShade.Visibility = Visibility.Collapsed;
 
             _loadingWindow?.CloseAfterLoading();
             _loadingWindow = null;
@@ -170,6 +191,7 @@ namespace Timeline.Viewer
                 DataContext = _viewModel
             };
 
+            BusyShade.Visibility = Visibility.Visible;
             _loadingWindow.Show();
         }
     }

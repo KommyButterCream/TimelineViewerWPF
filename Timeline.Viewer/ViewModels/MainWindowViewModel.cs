@@ -16,12 +16,12 @@ namespace Timeline.Viewer.ViewModels
 {
     public partial class MainWindowViewModel : ObservableObject
     {
-        private const string DefaultStatusText = "Ready · 샘플 세션";
+        private const string DefaultStatusText = "Ready · 로그 파일을 열어주세요";
 
         private readonly IThemeService _themeService;
         private readonly IFileDialogService _fileDialogService;
         private readonly ITraceLoadService _traceLoadService;
-        private ViewerState _state = ViewerState.Ready;
+        private ViewerState _state = ViewerState.Empty;
         private long _loadGeneration;
         public TraceDocument? CurrentDocument { get; private set; }
         public bool IsLoading => State == ViewerState.Loading;
@@ -38,6 +38,7 @@ namespace Timeline.Viewer.ViewModels
                     OpenFileCommand.NotifyCanExecuteChanged();
                     CancelLoadCommand.NotifyCanExecuteChanged();
                     UpdateDiagnosticCommands();
+                    OpenSampleCommand.NotifyCanExecuteChanged();
                 }
             }
         }
@@ -73,6 +74,7 @@ namespace Timeline.Viewer.ViewModels
             _fileDialogService = fileDialogService;
             _traceLoadService = traceLoadService;
             InitializeDiagnosticCommands();
+            OpenSampleCommand = new RelayCommand(OpenSample, () => !IsLoading);
 
             ResetStatusCommand = new RelayCommand(ResetStatus, CanResetStatus);
 
@@ -99,12 +101,6 @@ namespace Timeline.Viewer.ViewModels
 
             _themeService.ApplyTheme(_currentTheme);
 
-            foreach (TrackItemViewModel track in SampleTraceFactory.CreateTracks())
-            {
-                Tracks.Add(track);
-            }
-
-            SelectedTrack = Tracks.Count > 0 ? Tracks[0] : null;
         }
 
         public RelayCommand ResetStatusCommand { get; }
@@ -269,7 +265,7 @@ namespace Timeline.Viewer.ViewModels
             get => _diagnostics;
             private set
             {
-                if(SetProperty(ref _diagnostics, value))
+                if (SetProperty(ref _diagnostics, value))
                 {
                     OnPropertyChanged(nameof(DiagnosticCount));
                     OnPropertyChanged(nameof(HasDiagnostics));
@@ -559,9 +555,12 @@ namespace Timeline.Viewer.ViewModels
 
             SelectedDiagnostic = null;
             Tracks = newTracks;
+            HasSession = true;
             Diagnostics = prepared.Diagnostics;
             CurrentDocument = document;
             OnPropertyChanged(nameof(CurrentDocument));
+            OnPropertyChanged(nameof(SessionTitle));
+            OnPropertyChanged(nameof(SessionSummary));
             SelectedTrack = Tracks.Count > 0 ? Tracks[0] : null;
             NotificationText = document.DiagnosticCount > 0
                 ? $"진단 포함 완료 · {document.DiagnosticCount:N0}건을 확인하세요."

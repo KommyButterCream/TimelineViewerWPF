@@ -16,8 +16,8 @@ namespace Timeline.Viewer.Commands
         private bool _isExecuting;
 
         public AsyncRelayCommand(
-            Func<Task> execute, 
-            Action<Exception> onError, 
+            Func<Task> execute,
+            Action<Exception> onError,
             Func<bool>? canExecute = null)
         {
             ArgumentNullException.ThrowIfNull(execute);
@@ -35,7 +35,7 @@ namespace Timeline.Viewer.Commands
             return !_isExecuting && (_canExecute?.Invoke() ?? true);
         }
 
-        public async void Execute(object? parameter) 
+        public async void Execute(object? parameter)
         {
             try
             {
@@ -46,10 +46,10 @@ namespace Timeline.Viewer.Commands
                 _onError(exception);
             }
         }
-        
+
         public async Task ExecuteAsync()
         {
-            if(!CanExecute(null))
+            if (!CanExecute(null))
             {
                 return;
             }

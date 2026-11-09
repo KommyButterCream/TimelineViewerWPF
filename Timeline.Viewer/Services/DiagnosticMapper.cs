@@ -12,7 +12,7 @@ namespace Timeline.Viewer.Services
     public static class DiagnosticMapper
     {
         public static IReadOnlyList<DiagnosticItem> Map(
-            TraceDocument document, 
+            TraceDocument document,
             CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(document);

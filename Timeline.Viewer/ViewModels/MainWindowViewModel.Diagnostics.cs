@@ -81,14 +81,14 @@ namespace Timeline.Viewer.ViewModels
             if (diagnostic.SpanId is string spanId)
             {
                 foreach (TrackItemViewModel track in Tracks)
-                foreach (SpanItemViewModel span in track.Spans)
-                {
-                    if (!string.Equals(span.Id, spanId, StringComparison.Ordinal)) continue;
-                    SelectedSpan = span;
-                    SpanRevealRequested?.Invoke(span);
-                    DiagnosticNavigationText = $"관련 Span: {span.Name}";
-                    return;
-                }
+                    foreach (SpanItemViewModel span in track.Spans)
+                    {
+                        if (!string.Equals(span.Id, spanId, StringComparison.Ordinal)) continue;
+                        SelectedSpan = span;
+                        SpanRevealRequested?.Invoke(span);
+                        DiagnosticNavigationText = $"관련 Span: {span.Name}";
+                        return;
+                    }
             }
 
             SelectedSpan = null;

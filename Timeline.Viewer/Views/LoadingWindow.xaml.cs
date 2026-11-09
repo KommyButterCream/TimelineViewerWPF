@@ -17,7 +17,7 @@ namespace Timeline.Viewer.Views
         }
 
         public void CloseAfterLoading()
-        { 
+        {
             _allowClose = true;
             Close();
         }

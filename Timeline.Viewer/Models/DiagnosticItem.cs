@@ -14,7 +14,7 @@ namespace Timeline.Viewer.Models
         public required string FilePath { get; init; }
         public long? LineNumber { get; init; }
         public long? RelatedLineNumber { get; init; }
-        public string? SpanId { get; init;  }
+        public string? SpanId { get; init; }
         public string? TrackId { get; init; }
 
         public bool IsFatal { get; init; }

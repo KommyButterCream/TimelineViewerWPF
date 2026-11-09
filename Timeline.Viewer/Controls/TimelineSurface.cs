@@ -36,6 +36,16 @@ namespace Timeline.Viewer.Controls
             _fitRequested = true;
             InvalidateVisual();
         }
+
+        public void ZoomIn() => ZoomAtCenter(120);
+
+        public void ZoomOut() => ZoomAtCenter(-120);
+
+        private void ZoomAtCenter(int wheelDelta)
+        {
+            if (_panStartPoint is not null) return;
+            ZoomAtPointer(ChartLeft + HorizontalAxis.Viewport / 2, wheelDelta);
+        }
         private double _panStartHorizontalOffset;
         private double _panStartVerticalOffset;
 
@@ -453,7 +463,7 @@ namespace Timeline.Viewer.Controls
             drawingContext.Pop();
 
 
-            if(IsKeyboardFocused && AxisBrush is Brush focusBrsuh)
+            if (IsKeyboardFocused && AxisBrush is Brush focusBrsuh)
             {
                 var focusPen = new Pen(focusBrsuh, 1)
                 {

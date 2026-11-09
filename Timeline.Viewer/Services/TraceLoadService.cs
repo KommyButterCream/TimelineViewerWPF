@@ -44,11 +44,11 @@ namespace Timeline.Viewer.Services
             long recordCount = 0;
             progress?.Report(new TraceLoadProgress(TraceLoadStage.Reading, recordCount));
 
-            await foreach(TraceReadResult result in reader.ReadAsync(filePath, cancellationToken))
+            await foreach (TraceReadResult result in reader.ReadAsync(filePath, cancellationToken))
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                if(result.Diagnostic is TraceReadDiagnostic diagnostic)
+                if (result.Diagnostic is TraceReadDiagnostic diagnostic)
                 {
                     readDiagnostics.Add(diagnostic);
 
@@ -62,7 +62,7 @@ namespace Timeline.Viewer.Services
                     continue;
                 }
 
-                if(result.Record is TraceRecord record)
+                if (result.Record is TraceRecord record)
                 {
                     assembler.Add(record, result.LineNumber);
                     recordCount++;
