@@ -85,6 +85,16 @@ namespace Timeline.Viewer.Controls
             typeof(TimelineSurface),
             new FrameworkPropertyMetadata(Brushes.DimGray, FrameworkPropertyMetadataOptions.AffectsRender));
 
+        public static readonly DependencyProperty SelectionBrushProperty = DependencyProperty.Register(
+            nameof(SelectionBrush), typeof(Brush), typeof(TimelineSurface),
+            new FrameworkPropertyMetadata(Brushes.Cyan, FrameworkPropertyMetadataOptions.AffectsRender));
+
+        public Brush SelectionBrush
+        {
+            get => (Brush)GetValue(SelectionBrushProperty);
+            set => SetValue(SelectionBrushProperty, value);
+        }
+
         public TimelineSurface()
         {
             ClipToBounds = true;
@@ -593,7 +603,8 @@ namespace Timeline.Viewer.Controls
             double rowTop,
             double trackHeight)
         {
-            Brush spanBrush = TrackPalette.GetBrush(track.Id);
+            Brush spanBrush = SystemParameters.HighContrast
+                ? SystemColors.HighlightBrush : TrackPalette.GetBrush(track.Id);
             Brush? textBrush = AxisBrush;
             Brush? lineBrush = GridLineBrush;
 
@@ -744,7 +755,8 @@ namespace Timeline.Viewer.Controls
                     span.IsMissingEnd ? span.Name + " · 종료 누락 →" : span.Name,
                     CultureInfo.CurrentUICulture, FlowDirection.LeftToRight,
                     new Typeface("Segoe UI"), 11,
-                    span.IsMissingEnd ? AxisBrush ?? brush : Brushes.Black,
+                    span.IsMissingEnd ? AxisBrush ?? brush
+                        : SystemParameters.HighContrast ? SystemColors.HighlightTextBrush : Brushes.Black,
                     VisualTreeHelper.GetDpi(this).PixelsPerDip)
                 {
                     MaxTextWidth = bounds.Width - 10,
@@ -869,23 +881,17 @@ namespace Timeline.Viewer.Controls
 
         private void DrawSelectionBorder(DrawingContext drawingContext, SpanItemViewModel span, Rect bounds)
         {
-            if (!ReferenceEquals(span, SelectedSpan) || AxisBrush is null)
+            if (!ReferenceEquals(span, SelectedSpan) || SelectionBrush is null)
             {
                 return;
             }
 
-            // 테두리 두께의 절반만큼 안쪽에 배치한다.
-            const double thickness = 2;
-
-            if (bounds.Width <= thickness || bounds.Height <= thickness)
-            {
-                return;
-            }
-
-            bounds.Inflate(-thickness / 2, -thickness / 2);
-
-            var pen = new Pen(AxisBrush, thickness);
-            drawingContext.DrawRoundedRectangle(null, pen, bounds, 2, 2);
+            // 구간 색상과 분리되는 어두운 외곽선 + 선명한 cyan 선택선.
+            // 바깥으로 확장하므로 짧은 Span과 순간 이벤트도 강조하고 글자를 가리지 않습니다.
+            bounds.Inflate(1, 1);
+            drawingContext.DrawRoundedRectangle(null,
+                new Pen(SystemParameters.HighContrast ? SystemColors.WindowTextBrush : Brushes.Black, 5), bounds, 3, 3);
+            drawingContext.DrawRoundedRectangle(null, new Pen(SelectionBrush, 3), bounds, 3, 3);
         }
 
         private List<SpanItemViewModel> GetKeyboardSpans()

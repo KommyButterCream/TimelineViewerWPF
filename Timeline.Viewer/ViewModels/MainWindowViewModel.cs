@@ -289,9 +289,7 @@ namespace Timeline.Viewer.ViewModels
                     ? AppTheme.White
                     : AppTheme.Black;
 
-            _themeService.ApplyTheme(nextTheme);
-
-            CurrentTheme = nextTheme;
+            ApplyTheme(nextTheme);
         }
 
         private void ResetStatus()
@@ -622,6 +620,12 @@ namespace Timeline.Viewer.ViewModels
             StatusText = LoadingStageText;
 
             CancelLoadCommand.NotifyCanExecuteChanged();
+        }
+
+        public void ApplyTheme(AppTheme theme)
+        {
+            _themeService.ApplyTheme(theme);
+            CurrentTheme = theme;
         }
     }
 }

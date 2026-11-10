@@ -6,6 +6,7 @@ using System;
 using System.ComponentModel;
 using System.Windows.Threading;
 using Timeline.Viewer.Views;
+using Timeline.Viewer.Models;
 
 namespace Timeline.Viewer
 {
@@ -19,10 +20,29 @@ namespace Timeline.Viewer
 
         private LoadingWindow? _loadingWindow;
         private bool _closeRequested;
+        private bool _isClosed;
+        private UserSettings _normalSettings = new();
+        private bool _lastMaximized;
 
+        private readonly UserSettings _initialSettings;
+
+        private readonly IWindowMaterialService _materialService = new WindowMaterialService();
         public MainWindow()
+            : this(new UserSettings())
         {
+
+        }
+
+        public MainWindow(UserSettings settings)
+        {
+            ArgumentNullException.ThrowIfNull(settings);
+
+            _initialSettings = settings;
+            _normalSettings = settings;
+            _lastMaximized = settings.IsMaximized;
+
             InitializeComponent();
+            PopupMaterial.SetUseMaterial(this, settings.UseWindowMaterial);
 
             var themeService = new ThemeService();
 
@@ -45,6 +65,55 @@ namespace Timeline.Viewer
             _viewModel.PropertyChanged += OnViewModelPropertyChanged;
 
             DataContext = _viewModel;
+
+            _viewModel.ApplyTheme(settings.Theme);
+            Width = 1280;
+            Height = 760;
+            WindowStartupLocation = WindowStartupLocation.Manual;
+            Loaded += (_, _) =>
+            {
+                if (settings.IsMaximized) WindowState = WindowState.Maximized;
+                else RememberNormalBounds();
+            };
+            LocationChanged += (_, _) => RememberNormalBounds();
+            SizeChanged += (_, _) => RememberNormalBounds();
+            StateChanged += (_, _) =>
+            {
+                if (WindowState != WindowState.Minimized)
+                    _lastMaximized = WindowState == WindowState.Maximized;
+            };
+        }
+
+        // HWND가 만들어진 뒤에만 Windows 재질을 적용합니다.
+        protected override void OnSourceInitialized(EventArgs e)
+        {
+            base.OnSourceInitialized(e);
+            WindowPlacementService.Restore(this, _initialSettings);
+            _normalSettings = WindowPlacementService.Capture(this, _initialSettings);
+            SystemParameters.StaticPropertyChanged += OnSystemParametersChanged;
+            ApplyWindowMaterial();
+        }
+
+        private void OnSystemParametersChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            bool displayChanged = e.PropertyName is nameof(SystemParameters.WorkArea)
+                or nameof(SystemParameters.VirtualScreenWidth) or nameof(SystemParameters.VirtualScreenHeight)
+                or nameof(SystemParameters.VirtualScreenLeft) or nameof(SystemParameters.VirtualScreenTop);
+            if (!displayChanged && e.PropertyName != nameof(SystemParameters.HighContrast)) return;
+            Dispatcher.InvokeAsync(() =>
+            {
+                if (_isClosed) return;
+                if (displayChanged)
+                {
+                    if (WindowState == WindowState.Normal)
+                        WindowPlacementService.Restore(this, _normalSettings);
+                    return;
+                }
+                _viewModel.ApplyTheme(_viewModel.CurrentTheme);
+                TimelineView.InvalidateVisual();
+                ApplyWindowMaterial();
+                _loadingWindow?.ApplyWindowMaterial();
+            });
         }
 
         private void OnFitToView(object sender, RoutedEventArgs e)
@@ -98,6 +167,8 @@ namespace Timeline.Viewer
 
         protected override void OnClosed(EventArgs e)
         {
+            _isClosed = true;
+            SystemParameters.StaticPropertyChanged -= OnSystemParametersChanged;
             _viewModel.CancelSourcePreview();
             _loadingTimer.Stop();
             _loadingTimer.Tick -= OnLoadingTimerTick;
@@ -142,6 +213,14 @@ namespace Timeline.Viewer
 
         private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
+            if (e.PropertyName == nameof(MainWindowViewModel.CurrentTheme))
+            {
+                TimelineView.InvalidateVisual();
+                ApplyWindowMaterial();
+                _loadingWindow?.ApplyWindowMaterial();
+                return;
+            }
+
             if (e.PropertyName != nameof(MainWindowViewModel.IsLoading))
             {
                 return;
@@ -188,11 +267,36 @@ namespace Timeline.Viewer
             _loadingWindow = new LoadingWindow
             {
                 Owner = this,
-                DataContext = _viewModel
+                DataContext = _viewModel,
+                UseWindowMaterial = _initialSettings.UseWindowMaterial
             };
 
             BusyShade.Visibility = Visibility.Visible;
             _loadingWindow.Show();
+        }
+
+        private void RememberNormalBounds()
+        {
+            if (!IsLoaded || WindowState != WindowState.Normal) return;
+            _normalSettings = WindowPlacementService.Capture(this, _normalSettings);
+        }
+
+        public UserSettings CaptureSettings()
+        {
+            RememberNormalBounds();
+            return _normalSettings with
+            {
+                Theme = _viewModel.CurrentTheme,
+                IsMaximized = _lastMaximized
+            };
+        }
+        private void ApplyWindowMaterial()
+        {
+            WindowMaterialPresenter.Apply(
+                this,
+                _materialService,
+                _viewModel.CurrentTheme,
+                _initialSettings.UseWindowMaterial);
         }
     }
 }

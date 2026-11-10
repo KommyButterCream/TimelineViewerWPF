@@ -1,6 +1,7 @@
 <ResourceDictionary
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:services="clr-namespace:Timeline.Viewer.Services">
     <!-- 표시 여부 변환: bool 값을 Visible 또는 Collapsed로 변환 -->
     <BooleanToVisibilityConverter
         x:Key="BooleanVisibility" />
@@ -206,9 +207,13 @@
                             ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}" />
                         <Popup
                             x:Name="PART_Popup"
+                            services:PopupMaterial.IsEnabled="True"
+                            PlacementTarget="{Binding RelativeSource={RelativeSource TemplatedParent}}"
+                            services:PopupMaterial.Theme="{Binding PlacementTarget.(services:PopupMaterial.Theme), RelativeSource={RelativeSource Self}}"
+                            services:PopupMaterial.UseMaterial="{Binding PlacementTarget.(services:PopupMaterial.UseMaterial), RelativeSource={RelativeSource Self}}"
                             IsOpen="{TemplateBinding IsDropDownOpen}"
                             Placement="Bottom"
-                            AllowsTransparency="True"
+                            AllowsTransparency="False"
                             Focusable="False">
                             <Border
                                 Background="{DynamicResource SurfaceBrush}"

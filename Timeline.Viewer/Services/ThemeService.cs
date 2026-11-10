@@ -28,7 +28,7 @@ namespace Timeline.Viewer.Services
             var newDictionary = new ResourceDictionary
             {
                 Source = new Uri(
-                    $"/Timeline.Viewer;component/Themes/{fileName}",
+                    $"/Timeline.Viewer;component/Themes/{(SystemParameters.HighContrast ? "HighContrast.xaml" : fileName)}",
                     UriKind.Relative)
             };
 
@@ -48,6 +48,9 @@ namespace Timeline.Viewer.Services
                         StringComparison.OrdinalIgnoreCase) ||
                     source.EndsWith(
                         "Themes/White.xaml",
+                        StringComparison.OrdinalIgnoreCase) ||
+                    source.EndsWith(
+                        "Themes/HighContrast.xaml",
                         StringComparison.OrdinalIgnoreCase);
 
                 if (isThemeDictionary)
