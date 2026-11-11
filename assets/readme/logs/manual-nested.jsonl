@@ -1,0 +1,11 @@
+{"type":"header","format":"timeline","version":1,"timeUnit":"us","originUtc":"2026-11-11T01:14:42.9162499+00:00"}
+{"type":"track","id":"main","name":"\uC694\uCCAD \uCC98\uB9AC"}
+{"type":"begin","id":"request","track":"main","name":"\uC694\uCCAD","time":0}
+{"type":"begin","id":"parse","track":"main","name":"\uD30C\uC2F1","time":10000,"parent":"request"}
+{"type":"end","id":"parse","time":30000}
+{"type":"begin","id":"render","track":"main","name":"\uB80C\uB354\uB9C1","time":30000,"parent":"request"}
+{"type":"end","id":"render","time":80000}
+{"type":"begin","id":"marker","track":"main","name":"\uC644\uB8CC \uC2E0\uD638","time":80000,"parent":"request"}
+{"type":"end","id":"marker","time":80000}
+{"type":"end","id":"request","time":100000}
+{"type":"sessionEnd","time":100000,"droppedRecordCount":0}

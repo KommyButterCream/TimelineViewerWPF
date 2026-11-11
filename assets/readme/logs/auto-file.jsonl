@@ -1,0 +1,5 @@
+{"type":"header","format":"timeline","version":1,"timeUnit":"us","originUtc":"2026-11-11T01:14:42.572741+00:00"}
+{"type":"track","id":"track-1","name":"\uD30C\uC77C I/O"}
+{"type":"begin","id":"span-1","track":"track-1","name":"\uD14D\uC2A4\uD2B8 \uD30C\uC77C \uC77D\uAE30","time":1041,"args":{"file":"appsettings.json"}}
+{"type":"end","id":"span-1","time":4512}
+{"type":"sessionEnd","time":4519,"droppedRecordCount":0}

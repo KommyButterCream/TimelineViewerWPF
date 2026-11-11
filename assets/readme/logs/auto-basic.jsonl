@@ -1,0 +1,8 @@
+{"type":"header","format":"timeline","version":1,"timeUnit":"us","originUtc":"2026-11-11T01:14:42.2438356+00:00"}
+{"type":"track","id":"track-1","name":"\uD30C\uC77C I/O"}
+{"type":"track","id":"track-2","name":"\uC5F0\uC0B0"}
+{"type":"begin","id":"span-1","track":"track-1","name":"\uD30C\uC77C \uC77D\uAE30","time":21019}
+{"type":"begin","id":"span-2","track":"track-2","name":"\uB370\uC774\uD130 \uBCC0\uD658","time":156654,"parent":"span-1","args":{"itemCount":1000,"cacheHit":false}}
+{"type":"end","id":"span-2","time":249600}
+{"type":"end","id":"span-1","time":249619}
+{"type":"sessionEnd","time":251879,"droppedRecordCount":0}

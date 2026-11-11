@@ -3,9 +3,9 @@
 .NET 애플리케이션의 실행 구간을 **JSONL 로그로 기록**하고, **WPF 타임라인에서 탐색**하는 도구입니다.
 파일 I/O, 연산, 렌더링 등을 Track으로 구분하고 각 작업의 시작·종료 시각과 소요 시간을 확인할 수 있습니다.
 
-![Black 테마에서 Span을 선택한 Timeline.Viewer](assets/readme/timeline-dark.png)
+![네트워크·CPU·CUDA·렌더링의 8개 Track과 48개 구간을 표시한 Timeline.Viewer](assets/readme/hero-network-cuda.png)
 
-*실제 WPF 앱의 내장 샘플 화면. Track별 실행 구간과 선택한 작업의 시간·Args를 함께 확인합니다.*
+*네트워크 수신 → CPU 디코딩·전처리 → CUDA H2D 전송·추론·D2H 전송 → 렌더링 흐름을 8개 Track, 48개 구간으로 표현한 실제 Viewer 화면입니다. 선택한 추론 구간의 시간과 Args도 함께 확인할 수 있습니다. 캡처용 가상 로그이며 실제 CUDA 프로파일링 결과는 아닙니다.*
 
 [빌드 및 실행](#빌드-및-실행) · [DLL 연결](#1-다른-앱에서-dll-참조하기) · [자동 기록](#2-실행-시간을-자동으로-기록하기) · [수동 기록](#3-writer를-직접-생성해-jsonl-기록하기) · [사용 매뉴얼](#4-timelineviewer-사용-매뉴얼)
 
@@ -105,6 +105,12 @@ Visual Studio의 **참조 추가 → 찾아보기**로 DLL을 선택해도 됩�
 
 **자동/수동은 시간 측정의 차이입니다.** Tracer는 호출 시각을 자동 측정하고, Writer는 전달받은 시각을 그대로 기록합니다. Tracer의 `Begin` / `End`도 시간 자체는 자동 측정합니다. 앱의 모든 함수를 자동으로 추적하는 방식은 아니며, 측정할 구간에 계측 코드를 넣어야 합니다.
 
+### 예제 결과를 직접 열어보기
+
+각 코드 아래의 JSONL 파일과 캡처는 해당 예제를 실행한 결과입니다. GitHub에서 파일 링크를 연 뒤 **Download raw file**로 저장하고, Viewer의 **로그 열기**로 열어보세요. 저장소를 복제했다면 `assets/readme/logs` 폴더의 파일을 바로 열 수 있습니다.
+
+자동 예제의 시각은 한 번의 실제 실행에서 측정한 값이며 PC·스케줄링·파일 캐시에 따라 달라집니다. Task.Delay의 지정값과 실제 소요 시간은 같지 않을 수 있습니다. 수동 예제의 상대 시각은 코드에 지정된 값입니다. 기본 예제의 저장 파일명만 문서용 고정 이름으로 바꿨고, Begin/End 및 메서드 예제는 각각 별도 Tracer/Writer로 실행했습니다. 옵션 설정 코드는 자체 작업 구간을 만들지 않으므로 별도 캡처를 두지 않았습니다.
+
 ## 2. 실행 시간을 자동으로 기록하기
 
 일반적인 애플리케이션 계측에는 `TimelineTracer`를 사용합니다. 내부에서 Writer를 생성하고, 작업 시간을 세션 시작 기준 마이크로초로 측정합니다.
@@ -152,6 +158,30 @@ await using (var tracer = await TimelineTracer.CreateAsync(filePath))
 Console.WriteLine($"저장 완료: {filePath}");
 ```
 
+**실행 결과** · [auto-basic.jsonl 열기 / 다운로드](assets/readme/logs/auto-basic.jsonl)
+
+파일 읽기 안에서 데이터 변환이 실행됩니다. 선택한 데이터 변환의 Args에 itemCount와 cacheHit가 표시됩니다.
+
+![auto-basic 로그를 실제 Viewer에서 연 화면](assets/readme/auto-basic.png)
+
+<details>
+<summary>이 화면에 사용한 JSONL 로그 보기</summary>
+
+문자열의 Unicode 이스케이프는 읽기 쉽게 풀어 표시했습니다. 레코드와 시각은 연결된 파일과 같습니다.
+
+```jsonl
+{"type":"header","format":"timeline","version":1,"timeUnit":"us","originUtc":"2026-11-11T01:14:42.2438356+00:00"}
+{"type":"track","id":"track-1","name":"파일 I/O"}
+{"type":"track","id":"track-2","name":"연산"}
+{"type":"begin","id":"span-1","track":"track-1","name":"파일 읽기","time":21019}
+{"type":"begin","id":"span-2","track":"track-2","name":"데이터 변환","time":156654,"parent":"span-1","args":{"itemCount":1000,"cacheHit":false}}
+{"type":"end","id":"span-2","time":249600}
+{"type":"end","id":"span-1","time":249619}
+{"type":"sessionEnd","time":251879,"droppedRecordCount":0}
+```
+
+</details>
+
 - **Track**: 작업을 분류하는 행입니다. 예: 파일 I/O, 렌더링, Worker 1.
 - **Span**: 시작과 종료를 가진 작업 구간입니다.
 - **BeginScope**: 호출 시 Begin을 기록하고 `using` 블록을 나갈 때 End를 기록합니다. `await`를 포함한 구간에도 사용할 수 있습니다.
@@ -171,6 +201,27 @@ finally
     tracer.End(span);
 }
 ```
+
+**실행 결과** · [auto-begin-end.jsonl 열기 / 다운로드](assets/readme/logs/auto-begin-end.jsonl)
+
+Begin/End로 직접 감싼 작업입니다. Task.Delay(50)의 실제 측정 구간은 이 실행에서 약 61.521ms입니다.
+
+![auto-begin-end 로그를 실제 Viewer에서 연 화면](assets/readme/auto-begin-end.png)
+
+<details>
+<summary>이 화면에 사용한 JSONL 로그 보기</summary>
+
+문자열의 Unicode 이스케이프는 읽기 쉽게 풀어 표시했습니다. 레코드와 시각은 연결된 파일과 같습니다.
+
+```jsonl
+{"type":"header","format":"timeline","version":1,"timeUnit":"us","originUtc":"2026-11-11T01:14:42.5096997+00:00"}
+{"type":"track","id":"track-1","name":"파일 I/O"}
+{"type":"begin","id":"span-1","track":"track-1","name":"작업","time":52}
+{"type":"end","id":"span-1","time":61573}
+{"type":"sessionEnd","time":61580,"droppedRecordCount":0}
+```
+
+</details>
 
 위 코드는 앞 예제의 `tracer`와 `ioTrack`이 살아 있는 블록 안에 넣습니다. 정상 종료와 예외 경로 모두에서 End가 기록되도록 `finally` 또는 Scope를 사용하세요.
 
@@ -198,6 +249,27 @@ static async Task<string> ReadTextAsync(
     }
 }
 ```
+
+**실행 결과** · [auto-file.jsonl 열기 / 다운로드](assets/readme/logs/auto-file.jsonl)
+
+appsettings.json을 실제로 읽은 결과입니다. 선택한 구간은 약 3.471ms이며 Args에 파일 이름이 표시됩니다.
+
+![auto-file 로그를 실제 Viewer에서 연 화면](assets/readme/auto-file.png)
+
+<details>
+<summary>이 화면에 사용한 JSONL 로그 보기</summary>
+
+문자열의 Unicode 이스케이프는 읽기 쉽게 풀어 표시했습니다. 레코드와 시각은 연결된 파일과 같습니다.
+
+```jsonl
+{"type":"header","format":"timeline","version":1,"timeUnit":"us","originUtc":"2026-11-11T01:14:42.572741+00:00"}
+{"type":"track","id":"track-1","name":"파일 I/O"}
+{"type":"begin","id":"span-1","track":"track-1","name":"텍스트 파일 읽기","time":1041,"args":{"file":"appsettings.json"}}
+{"type":"end","id":"span-1","time":4512}
+{"type":"sessionEnd","time":4519,"droppedRecordCount":0}
+```
+
+</details>
 
 호출: `await ReadTextAsync(tracer, ioTrack, "appsettings.json", CancellationToken.None);`
 입력 파일은 미리 준비합니다. `return`이나 예외로 메서드를 빠져나가도 Scope가 종료됩니다. 비동기 대기 시간도 구간에 포함됩니다.
@@ -231,6 +303,45 @@ static async Task RunWorkersAsync(TimelineTracer tracer)
 }
 ```
 
+**실행 결과** · [auto-workers.jsonl 열기 / 다운로드](assets/readme/logs/auto-workers.jsonl)
+
+Worker 0·1·2가 각각 3개 항목을 처리합니다. 총 9개 Span의 겹침과 Worker별 처리 시간 차이를 볼 수 있습니다.
+
+![auto-workers 로그를 실제 Viewer에서 연 화면](assets/readme/auto-workers.png)
+
+<details>
+<summary>이 화면에 사용한 JSONL 로그 보기</summary>
+
+문자열의 Unicode 이스케이프는 읽기 쉽게 풀어 표시했습니다. 레코드와 시각은 연결된 파일과 같습니다.
+
+```jsonl
+{"type":"header","format":"timeline","version":1,"timeUnit":"us","originUtc":"2026-11-11T01:14:42.5776277+00:00"}
+{"type":"track","id":"track-1","name":"Worker 0"}
+{"type":"track","id":"track-2","name":"Worker 1"}
+{"type":"track","id":"track-3","name":"Worker 2"}
+{"type":"begin","id":"span-1","track":"track-1","name":"항목 0 처리","time":734}
+{"type":"begin","id":"span-2","track":"track-3","name":"항목 0 처리","time":745}
+{"type":"begin","id":"span-3","track":"track-2","name":"항목 0 처리","time":749}
+{"type":"end","id":"span-1","time":42874}
+{"type":"begin","id":"span-4","track":"track-1","name":"항목 1 처리","time":42885}
+{"type":"end","id":"span-3","time":57644}
+{"type":"begin","id":"span-5","track":"track-2","name":"항목 1 처리","time":57654}
+{"type":"end","id":"span-2","time":72848}
+{"type":"begin","id":"span-6","track":"track-3","name":"항목 1 처리","time":72854}
+{"type":"end","id":"span-4","time":72863}
+{"type":"begin","id":"span-7","track":"track-1","name":"항목 2 처리","time":72868}
+{"type":"end","id":"span-7","time":104661}
+{"type":"end","id":"span-5","time":120611}
+{"type":"begin","id":"span-8","track":"track-2","name":"항목 2 처리","time":120615}
+{"type":"end","id":"span-6","time":148194}
+{"type":"begin","id":"span-9","track":"track-3","name":"항목 2 처리","time":148201}
+{"type":"end","id":"span-8","time":179699}
+{"type":"end","id":"span-9","time":226994}
+{"type":"sessionEnd","time":227043,"droppedRecordCount":0}
+```
+
+</details>
+
 호출: `await RunWorkersAsync(tracer);`
 Viewer에서 Worker별 구간의 겹침과 소요 시간을 비교할 수 있습니다. 이 예제의 지연은 실행 흐름을 보여주기 위한 것으로 CPU 성능 측정 예제가 아닙니다.
 
@@ -253,6 +364,27 @@ static async Task RunCancellableAsync(
     }
 }
 ```
+
+**실행 결과** · [auto-cancel.jsonl 열기 / 다운로드](assets/readme/logs/auto-cancel.jsonl)
+
+호출부에서 CancelAfter(100)으로 취소를 요청하고 OperationCanceledException을 처리했습니다. 약 108.524ms 후 finally에서 End가 기록되어 완료로 표시됩니다. 업무 성공을 의미하지는 않습니다.
+
+![auto-cancel 로그를 실제 Viewer에서 연 화면](assets/readme/auto-cancel.png)
+
+<details>
+<summary>이 화면에 사용한 JSONL 로그 보기</summary>
+
+문자열의 Unicode 이스케이프는 읽기 쉽게 풀어 표시했습니다. 레코드와 시각은 연결된 파일과 같습니다.
+
+```jsonl
+{"type":"header","format":"timeline","version":1,"timeUnit":"us","originUtc":"2026-11-11T01:14:42.8051642+00:00"}
+{"type":"track","id":"track-1","name":"취소 요청"}
+{"type":"begin","id":"span-1","track":"track-1","name":"취소 가능한 처리","time":467}
+{"type":"end","id":"span-1","time":108991}
+{"type":"sessionEnd","time":109083,"droppedRecordCount":0}
+```
+
+</details>
 
 호출하는 쪽에서 `CancellationTokenSource`의 토큰을 전달하고 `OperationCanceledException`을 처리합니다. 종료 기록은 **구간이 끝났다는 뜻**입니다. Viewer의 완료 상태가 업무 성공을 뜻하지는 않으며, 현재 End API는 성공·실패 상태나 결과 Args를 받지 않습니다. 기록 중인 앱의 업무 오류 처리는 별도로 유지하세요.
 
@@ -331,6 +463,27 @@ await using (var writer = new JsonlTraceWriter(filePath))
 Console.WriteLine($"저장 완료: {filePath}");
 ```
 
+**실행 결과** · [manual-basic.jsonl 열기 / 다운로드](assets/readme/logs/manual-basic.jsonl)
+
+코드에서 지정한 0–120ms 구간이 그대로 표시됩니다. Inspector의 소요 시간도 정확히 120ms입니다.
+
+![manual-basic 로그를 실제 Viewer에서 연 화면](assets/readme/manual-basic.png)
+
+<details>
+<summary>이 화면에 사용한 JSONL 로그 보기</summary>
+
+문자열의 Unicode 이스케이프는 읽기 쉽게 풀어 표시했습니다. 레코드와 시각은 연결된 파일과 같습니다.
+
+```jsonl
+{"type":"header","format":"timeline","version":1,"timeUnit":"us","originUtc":"2026-11-11T01:14:42.5091274+00:00"}
+{"type":"track","id":"io","name":"파일 I/O"}
+{"type":"begin","id":"read-1","track":"io","name":"설정 읽기","time":0}
+{"type":"end","id":"read-1","time":120000}
+{"type":"sessionEnd","time":120000,"droppedRecordCount":0}
+```
+
+</details>
+
 이 예제는 **120ms 구간을 가진 데이터**를 기록합니다. Writer 자체가 시간을 측정하거나 120ms를 기다리는 것은 아닙니다.
 
 직접 기록할 때는 다음 규칙을 지킵니다.
@@ -395,6 +548,31 @@ static async Task ExportMeasurementsAsync(JsonlTraceWriter writer)
 }
 ```
 
+**실행 결과** · [manual-measurements.jsonl 열기 / 다운로드](assets/readme/logs/manual-measurements.jsonl)
+
+수신(0–12ms)과 디코딩(8–28ms)이 겹쳐 서로 다른 Lane에 표시됩니다. 선택한 디코딩은 20ms이고 저장은 35–42ms입니다.
+
+![manual-measurements 로그를 실제 Viewer에서 연 화면](assets/readme/manual-measurements.png)
+
+<details>
+<summary>이 화면에 사용한 JSONL 로그 보기</summary>
+
+문자열의 Unicode 이스케이프는 읽기 쉽게 풀어 표시했습니다. 레코드와 시각은 연결된 파일과 같습니다.
+
+```jsonl
+{"type":"header","format":"timeline","version":1,"timeUnit":"us","originUtc":"2026-11-11T00:00:00+00:00"}
+{"type":"track","id":"device","name":"장비 작업"}
+{"type":"begin","id":"measurement-0","track":"device","name":"수신","time":0}
+{"type":"end","id":"measurement-0","time":12000}
+{"type":"begin","id":"measurement-1","track":"device","name":"디코딩","time":8000}
+{"type":"end","id":"measurement-1","time":28000}
+{"type":"begin","id":"measurement-2","track":"device","name":"저장","time":35000}
+{"type":"end","id":"measurement-2","time":42000}
+{"type":"sessionEnd","time":42000,"droppedRecordCount":0}
+```
+
+</details>
+
 호출: `await ExportMeasurementsAsync(writer);`
 수신(0–12ms)과 디코딩(8–28ms)은 시간이 겹치므로 같은 Track 안에서 다른 Lane에 배치됩니다. 파일 줄 순서와 시간 순서가 항상 같을 필요는 없으며 Begin/End ID를 정확히 연결해야 합니다.
 
@@ -439,6 +617,33 @@ static async Task WriteNestedSessionAsync(JsonlTraceWriter writer)
     await writer.FlushAsync();
 }
 ```
+
+**실행 결과** · [manual-nested.jsonl 열기 / 다운로드](assets/readme/logs/manual-nested.jsonl)
+
+100ms 요청 안에 파싱·렌더링이 배치됩니다. 80ms의 완료 신호를 선택하면 시작·종료가 모두 80ms, 소요 시간 0ms인 순간 이벤트로 표시됩니다.
+
+![manual-nested 로그를 실제 Viewer에서 연 화면](assets/readme/manual-nested.png)
+
+<details>
+<summary>이 화면에 사용한 JSONL 로그 보기</summary>
+
+문자열의 Unicode 이스케이프는 읽기 쉽게 풀어 표시했습니다. 레코드와 시각은 연결된 파일과 같습니다.
+
+```jsonl
+{"type":"header","format":"timeline","version":1,"timeUnit":"us","originUtc":"2026-11-11T01:14:42.9162499+00:00"}
+{"type":"track","id":"main","name":"요청 처리"}
+{"type":"begin","id":"request","track":"main","name":"요청","time":0}
+{"type":"begin","id":"parse","track":"main","name":"파싱","time":10000,"parent":"request"}
+{"type":"end","id":"parse","time":30000}
+{"type":"begin","id":"render","track":"main","name":"렌더링","time":30000,"parent":"request"}
+{"type":"end","id":"render","time":80000}
+{"type":"begin","id":"marker","track":"main","name":"완료 신호","time":80000,"parent":"request"}
+{"type":"end","id":"marker","time":80000}
+{"type":"end","id":"request","time":100000}
+{"type":"sessionEnd","time":100000,"droppedRecordCount":0}
+```
+
+</details>
 
 호출: `await WriteNestedSessionAsync(writer);`
 요청은 100ms, 파싱은 20ms, 렌더링은 50ms이며 완료 신호는 0ms 표시로 나타납니다. `ParentId`는 관계를 기록하지만 화면의 Lane 배치는 구간 겹침에 의해 결정됩니다.

@@ -1,0 +1,5 @@
+{"type":"header","format":"timeline","version":1,"timeUnit":"us","originUtc":"2026-11-11T01:14:42.8051642+00:00"}
+{"type":"track","id":"track-1","name":"\uCDE8\uC18C \uC694\uCCAD"}
+{"type":"begin","id":"span-1","track":"track-1","name":"\uCDE8\uC18C \uAC00\uB2A5\uD55C \uCC98\uB9AC","time":467}
+{"type":"end","id":"span-1","time":108991}
+{"type":"sessionEnd","time":109083,"droppedRecordCount":0}

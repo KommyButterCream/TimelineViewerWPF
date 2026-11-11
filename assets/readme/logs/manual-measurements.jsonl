@@ -1,0 +1,9 @@
+{"type":"header","format":"timeline","version":1,"timeUnit":"us","originUtc":"2026-11-11T00:00:00+00:00"}
+{"type":"track","id":"device","name":"\uC7A5\uBE44 \uC791\uC5C5"}
+{"type":"begin","id":"measurement-0","track":"device","name":"\uC218\uC2E0","time":0}
+{"type":"end","id":"measurement-0","time":12000}
+{"type":"begin","id":"measurement-1","track":"device","name":"\uB514\uCF54\uB529","time":8000}
+{"type":"end","id":"measurement-1","time":28000}
+{"type":"begin","id":"measurement-2","track":"device","name":"\uC800\uC7A5","time":35000}
+{"type":"end","id":"measurement-2","time":42000}
+{"type":"sessionEnd","time":42000,"droppedRecordCount":0}

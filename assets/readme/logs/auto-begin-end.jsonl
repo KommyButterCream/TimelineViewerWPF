@@ -1,0 +1,5 @@
+{"type":"header","format":"timeline","version":1,"timeUnit":"us","originUtc":"2026-11-11T01:14:42.5096997+00:00"}
+{"type":"track","id":"track-1","name":"\uD30C\uC77C I/O"}
+{"type":"begin","id":"span-1","track":"track-1","name":"\uC791\uC5C5","time":52}
+{"type":"end","id":"span-1","time":61573}
+{"type":"sessionEnd","time":61580,"droppedRecordCount":0}

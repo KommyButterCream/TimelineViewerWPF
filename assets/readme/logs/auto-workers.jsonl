@@ -1,0 +1,23 @@
+{"type":"header","format":"timeline","version":1,"timeUnit":"us","originUtc":"2026-11-11T01:14:42.5776277+00:00"}
+{"type":"track","id":"track-1","name":"Worker 0"}
+{"type":"track","id":"track-2","name":"Worker 1"}
+{"type":"track","id":"track-3","name":"Worker 2"}
+{"type":"begin","id":"span-1","track":"track-1","name":"\uD56D\uBAA9 0 \uCC98\uB9AC","time":734}
+{"type":"begin","id":"span-2","track":"track-3","name":"\uD56D\uBAA9 0 \uCC98\uB9AC","time":745}
+{"type":"begin","id":"span-3","track":"track-2","name":"\uD56D\uBAA9 0 \uCC98\uB9AC","time":749}
+{"type":"end","id":"span-1","time":42874}
+{"type":"begin","id":"span-4","track":"track-1","name":"\uD56D\uBAA9 1 \uCC98\uB9AC","time":42885}
+{"type":"end","id":"span-3","time":57644}
+{"type":"begin","id":"span-5","track":"track-2","name":"\uD56D\uBAA9 1 \uCC98\uB9AC","time":57654}
+{"type":"end","id":"span-2","time":72848}
+{"type":"begin","id":"span-6","track":"track-3","name":"\uD56D\uBAA9 1 \uCC98\uB9AC","time":72854}
+{"type":"end","id":"span-4","time":72863}
+{"type":"begin","id":"span-7","track":"track-1","name":"\uD56D\uBAA9 2 \uCC98\uB9AC","time":72868}
+{"type":"end","id":"span-7","time":104661}
+{"type":"end","id":"span-5","time":120611}
+{"type":"begin","id":"span-8","track":"track-2","name":"\uD56D\uBAA9 2 \uCC98\uB9AC","time":120615}
+{"type":"end","id":"span-6","time":148194}
+{"type":"begin","id":"span-9","track":"track-3","name":"\uD56D\uBAA9 2 \uCC98\uB9AC","time":148201}
+{"type":"end","id":"span-8","time":179699}
+{"type":"end","id":"span-9","time":226994}
+{"type":"sessionEnd","time":227043,"droppedRecordCount":0}
